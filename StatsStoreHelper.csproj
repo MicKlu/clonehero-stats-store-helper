@@ -13,6 +13,7 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.55.0" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.55.0.2371" />
     <PackageReference Include="UnityEngine.Modules" Version="2018.4.13" IncludeAssets="compile" />
   </ItemGroup>
@@ -27,6 +28,12 @@
     </Reference>
     <Reference Include="Harmony">
       <HintPath>lib\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http">
+      <HintPath>lib\System.Net.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization.dll">
+      <HintPath>lib\System.Runtime.Serialization.dll.dll</HintPath>
     </Reference>
   </ItemGroup> 
 </Project>

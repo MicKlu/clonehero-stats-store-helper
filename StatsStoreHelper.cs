@@ -1,9 +1,15 @@
 ﻿using BepInEx;
 using HarmonyLib;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Util.Store;
+using Google.Apis.Http;
+using StatsStoreHelper.MyWrappers;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using UnityEngine;
 using UnityEngine.SceneManagement;
-using StatsStoreHelper.MyWrappers;
 
 namespace StatsStoreHelper
 {
@@ -12,10 +18,43 @@ namespace StatsStoreHelper
     {
         private bool statsRead = false;
 
-        private void Awake()
+        private async void Awake()
         {
-            // Plugin startup logic
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+
+            try
+            {
+                UserCredential credentials = await GoogleAuthorization();
+            }
+            catch(Exception e)
+            {
+                Logger.LogError(e.ToString());
+                Logger.LogError(e.Message);
+                Logger.LogError(e.StackTrace);
+                Logger.LogError(e.GetType());
+            }
+        }
+
+        private async Task<UserCredential> GoogleAuthorization()
+        {
+            ClientSecrets clientSecrets = new ClientSecrets
+            {
+                ClientId = "1043533161342-rb1s1n4pcstiuc58tptkj3a6ju611guo.apps.googleusercontent.com",
+                ClientSecret = "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"
+            };
+            List<string> scopes = new List<string>
+            {
+                "https://www.googleapis.com/auth/photoslibrary.appendonly",
+                "https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata",
+                "https://www.googleapis.com/auth/drive.file"
+            };
+            
+            return await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                clientSecrets,
+                scopes,
+                "user",
+                CancellationToken.None,
+                new FileDataStore($"{BepInEx.Paths.ConfigPath}/{PluginInfo.PLUGIN_NAME}", true));
         }
 
         private void LateUpdate()
