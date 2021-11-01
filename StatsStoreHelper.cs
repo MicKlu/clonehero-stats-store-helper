@@ -25,6 +25,8 @@ namespace StatsStoreHelper
             try
             {
                 UserCredential credentials = await GoogleAuthorization();
+                GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
+                spreadsheet.init(credentials, PluginInfo.PLUGIN_NAME);
             }
             catch(Exception e)
             {
