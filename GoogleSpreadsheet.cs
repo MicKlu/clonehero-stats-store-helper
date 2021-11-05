@@ -5,6 +5,8 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace StatsStoreHelper
 {
@@ -14,11 +16,9 @@ namespace StatsStoreHelper
         private static readonly object instanceLock = new object(); 
         private UserCredential credentials;
         private SheetsService sheetsService;
+        private string spreadsheetId;
 
-        private GoogleSpreadsheet()
-        {
-            
-        }
+        private GoogleSpreadsheet() {}
 
         public static GoogleSpreadsheet GetInstance()
         {
@@ -29,20 +29,25 @@ namespace StatsStoreHelper
             return instance;
         }
     
-        public void init(UserCredential credentials, string name)
+        public async void Init(UserCredential credentials, string name)
         {
             Name = name;
             this.credentials = credentials;
+            
+            GoogleApi.GetInstance().Init(credentials);
             
             sheetsService = new SheetsService(new BaseClientService.Initializer
             {
                 HttpClientInitializer = credentials,
                 ApplicationName = PluginInfo.PLUGIN_NAME
             });
-            CreateSpreadsheet();
+
+            this.spreadsheetId = await GetSpreadsheetId();
+            if(this.spreadsheetId == null)
+                this.spreadsheetId = await CreateSpreadsheet();
         }
 
-        private async void CreateSpreadsheet()
+        private async Task<string> CreateSpreadsheet()
         {
             Spreadsheet spreadsheet = new Spreadsheet();
             spreadsheet.Properties = new SpreadsheetProperties() { Title = Name };
@@ -52,13 +57,20 @@ namespace StatsStoreHelper
             
             SpreadsheetsResource.CreateRequest createRequest = sheetsService.Spreadsheets.Create(spreadsheet);
             spreadsheet = await createRequest.ExecuteAsync();
-            System.Console.WriteLine(JsonConvert.SerializeObject(spreadsheet));
+            return spreadsheet.SpreadsheetId;
+        }
+
+        private async Task<string> GetSpreadsheetId()
+        {
+            string result = await GoogleApi.GetInstance().GetFileIdFromGoogleDrive(Name);
+            return result;
         }
 
         private Sheet CreateSheetTemplate(string playerName)
         {            
             // TODO: Get this list from config
-            List<object> headers = new List<object> {
+            List<object> headers = new List<object>
+            {
                 "",
                 "Setlist order",
                 "Artist",
@@ -76,11 +88,16 @@ namespace StatsStoreHelper
             Sheet sheet = new Sheet();
             SheetProperties properties = new SheetProperties() { Title = playerName };
             sheet.Properties = properties;
-            sheet.Data = GenerateGridData(new List<List<object>>() { headers });
+            sheet.Data = GenerateGridData(new List<IList<object>>() { headers });
+
+            CellFormat format = new CellFormat() {
+                TextFormat = new TextFormat() { Bold = true }
+            };
+            sheet.Data = SetFormat(sheet.Data, 0, 0, headers.Count-1, sheet.Data.Count-1, format);
             return sheet;
         }
 
-        private List<GridData> GenerateGridData(List<List<object>> plainData)
+        private IList<GridData> GenerateGridData(IList<IList<object>> plainData)
         {
             List<RowData> rows = new List<RowData>();
             foreach(List<object> plainRow in plainData)
@@ -99,6 +116,49 @@ namespace StatsStoreHelper
             grid.Add(new GridData() { RowData = rows });
 
             return grid;
+        }
+
+        private IList<GridData> SetFormat(IList<GridData> gridDatas, int colStart, int rowStart, int colEnd, int rowEnd, CellFormat format)
+        {
+            foreach(GridData gridData in gridDatas)
+            {
+                if(gridData.StartColumn > colEnd || gridData.StartRow > rowEnd)
+                    continue;
+
+                IList<RowData> rowDatas = gridData.RowData;
+                int rowI = gridData.StartRow.GetValueOrDefault();
+                foreach(RowData rowData in rowDatas)
+                {
+                    if(rowI < rowStart)
+                    {
+                        rowI++;
+                        continue;
+                    }
+                    
+                    if(rowI > rowEnd)
+                        break;
+
+                    IList<CellData> cellDatas = rowData.Values;
+                    int colI = gridData.StartColumn.GetValueOrDefault();
+                    foreach(CellData cellData in cellDatas)
+                    {
+                        if(colI < colStart)
+                        {
+                            colI++;
+                            continue;
+                        }
+                        if(colI > colEnd)
+                            break;
+                            
+                        cellData.UserEnteredFormat = format;
+
+                        colI++;
+                    }
+
+                    rowI++;
+                }
+            }
+            return gridDatas;
         }
 
         public string Name { get; private set; }
