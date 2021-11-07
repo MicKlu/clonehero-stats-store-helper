@@ -17,7 +17,7 @@ namespace StatsStoreHelper
         private static GoogleApi instance = null;
         private static readonly object instanceLock = new object();
         private UserCredential credentials;
-        private HttpClient httpClient;
+        private static HttpClient httpClient = null;
 
         private GoogleApi() {}
 
@@ -32,7 +32,9 @@ namespace StatsStoreHelper
 
         public void Init(UserCredential credentials)
         {
-            httpClient = new HttpClient();
+            if(httpClient == null)
+                httpClient = new HttpClient();
+            
             this.credentials = credentials;
         }
 

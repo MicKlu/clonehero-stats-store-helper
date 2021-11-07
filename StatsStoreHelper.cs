@@ -6,6 +6,8 @@ using Google.Apis.Http;
 using StatsStoreHelper.MyWrappers;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -24,9 +26,20 @@ namespace StatsStoreHelper
 
             try
             {
-                UserCredential credentials = await GoogleAuthorization();
+                await UserConfig.Authorize();
                 GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
-                spreadsheet.Init(credentials, PluginInfo.PLUGIN_NAME);
+                await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, "MGRINZ");
+
+                // Dictionary<string, object> query = new Dictionary<string, object>
+                // {
+                //     { "%hash%", hash }
+                // };
+
+                // int rowIndex = await spreadsheet.FindRow(query);
+                // System.Console.WriteLine(rowIndex);
+
+                // spreadsheet.AppendRow(statsRowBuilder.Build());
+                //spreadsheet.UpdateRow(3, statsRowBuilder.Build());
             }
             catch(Exception e)
             {
@@ -37,26 +50,17 @@ namespace StatsStoreHelper
             }
         }
 
-        private async Task<UserCredential> GoogleAuthorization()
+        private string HashSong(string song)
         {
-            ClientSecrets clientSecrets = new ClientSecrets
+            using(SHA256Managed sha256 = new SHA256Managed())
             {
-                ClientId = "1043533161342-rb1s1n4pcstiuc58tptkj3a6ju611guo.apps.googleusercontent.com",
-                ClientSecret = "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"
-            };
-            List<string> scopes = new List<string>
-            {
-                "https://www.googleapis.com/auth/photoslibrary.appendonly",
-                "https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata",
-                "https://www.googleapis.com/auth/drive.file"
-            };
-            
-            return await GoogleWebAuthorizationBroker.AuthorizeAsync(
-                clientSecrets,
-                scopes,
-                "user",
-                CancellationToken.None,
-                new FileDataStore($"{BepInEx.Paths.ConfigPath}/{PluginInfo.PLUGIN_NAME}", true));
+                string hash = "";
+                byte[] buffer = Encoding.UTF8.GetBytes(song);
+                byte[] hashBytes = sha256.ComputeHash(buffer);
+                foreach(byte b in hashBytes)
+                    hash += b.ToString("x2");
+                return hash;
+            }
         }
 
         private void LateUpdate()
@@ -101,8 +105,45 @@ namespace StatsStoreHelper
                 Logger.LogError(e.Message);
             }
 
+            SaveStats();
+
             this.statsRead = true;
             Logger.LogInfo($"LastUpdate - End");
+        }
+
+        private async void SaveStats()
+        {
+            MySongEntry currentSongEntry = MyGlobalVariables.GetInstance().CurrentSongEntry;
+            MyPlayerSongStats playerSongStats = MySongStats.PlayerSongStats[0];
+
+            GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
+            // TODO: Get player name from game
+            await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, "MGRINZ");
+
+            string hash = HashSong(currentSongEntry.Name);
+
+            StatsRowBuilder statsRowBuilder = new StatsRowBuilder();
+            Dictionary<string, object> stats = new Dictionary<string, object>
+            {
+                { "%date%", DateTime.Now },
+                { "%artist%", currentSongEntry.Artist },
+                { "%song%", currentSongEntry.Name },
+                { "%source%", currentSongEntry.iconName },
+                { "%charter%", currentSongEntry.Charter },
+                { "%score%", playerSongStats.Score },
+                { "%stars%", MySongStats.Stars },
+                { "%accuracy%", Convert.ToDouble(playerSongStats.Accuracy.TrimEnd('%')) / 100 },
+                { "%sp%", $"{playerSongStats.spPhrasesHit}/{playerSongStats.spPhrasesAll}" },
+                { "%fc%", (playerSongStats.combo == playerSongStats.notesAll) ? true : false },
+                { "%screenshot%", "https://aniceimage/" },
+                { "%hash%", hash }
+            };
+
+            foreach(string tag in UserConfig.StatsTags)
+                statsRowBuilder.AddStat(tag, stats[tag]);
+
+            // TODO: Find row, compare stats and decide whether to add or overwrite
+            spreadsheet.AppendRow(statsRowBuilder.Build());
         }
     }
 }
