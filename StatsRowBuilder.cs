@@ -6,15 +6,14 @@ namespace StatsStoreHelper
 {
     public class StatsRowBuilder
     {
-        private RowData row;
+        private StatsRow row;
         public StatsRowBuilder() {
             Reset();
         }
 
         private void Reset()
         {
-            row = new RowData();
-            row.Values = new List<CellData>();
+            row = new StatsRow();
         }
 
         public StatsRowBuilder AddStat(string statTag, object value)
@@ -92,12 +91,13 @@ namespace StatsStoreHelper
             }
             cell.UserEnteredFormat = cellFormat;
 
-            row.Values.Add(cell);
+            row.RowData.Values.Add(cell);
             return this;
         }
 
-        public RowData Build()
+        public StatsRow Build()
         {
+            row.Load();
             return row;
         } 
     }

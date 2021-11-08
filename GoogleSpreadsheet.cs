@@ -124,9 +124,10 @@ namespace StatsStoreHelper
             BatchUpdateSpreadsheetResponse response = await batchUpdateRequest.ExecuteAsync();
         }
 
-        // TODO: Change to return data for comparison
-        public async Task<int> FindRow(Dictionary<string, object> query)
+        public async Task<FindRowResult> FindRow(Dictionary<string, object> query)
         {
+            FindRowResult result = new FindRowResult();
+
             SpreadsheetsResource.GetRequest getRequest = sheetsService.Spreadsheets.Get(spreadsheetId);
             getRequest.Fields = "sheets.properties,sheets.data.rowData.values.userEnteredValue";
             getRequest.Ranges = new Google.Apis.Util.Repeatable<string>(new List<string> { $"'{SheetName}'" });
@@ -141,7 +142,7 @@ namespace StatsStoreHelper
                 int matches = 0;
                 foreach(KeyValuePair<string, object> pair in query)
                 {
-                    int colIndex = UserConfig.StatsTags.IndexOf(pair.Key);
+                    int colIndex = UserConfig.UserStatsTags.IndexOf(pair.Key);
                     
                     if(colIndex >= row.Values.Count)
                         continue;
@@ -171,9 +172,13 @@ namespace StatsStoreHelper
                 }
                 
                 if(matches == query.Count)
-                    return rows.IndexOf(row);
+                {
+                    result.Index = rows.IndexOf(row);
+                    result.RowData = row;
+                }
+                    
             }
-            return -1;
+            return result;
         }
 
         private async Task<int> GetSheetId(string name)

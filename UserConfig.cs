@@ -10,7 +10,7 @@ namespace StatsStoreHelper
     public static class UserConfig
     {
         // TODO: Add more fields
-        private static readonly Dictionary<string, string> HeaderNames = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> StatsTags = new Dictionary<string, string>()
         {
             { "%date%", "Date" },
             { "%artist%", "Artist" },
@@ -29,6 +29,8 @@ namespace StatsStoreHelper
         // TODO: Load it from config file
         private static string statsRowFormat = 
             "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %screenshot% %hash%";
+        private static string statsPriority = 
+            "%score% %fc% %accuracy% %stars%";
 
         public static async Task Authorize()
         {
@@ -44,6 +46,7 @@ namespace StatsStoreHelper
                 "https://www.googleapis.com/auth/drive.file"
             };
             
+            // Note: Seems it throws an exception on failure when reading from file
             GoogleUserCredentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                 clientSecrets,
                 scopes,
@@ -58,8 +61,8 @@ namespace StatsStoreHelper
             var headers = new List<object>();
 
             foreach(string tag in tags)
-                if(HeaderNames.ContainsKey(tag))
-                    headers.Add(HeaderNames[tag]);
+                if(StatsTags.ContainsKey(tag))
+                    headers.Add(StatsTags[tag]);
 
             return headers;
         }
@@ -67,14 +70,15 @@ namespace StatsStoreHelper
         // TODO: Load it from config file
         public static string DateTimeFormat => "yyyy-MM-dd HH:mm";
 
-        public static List<string> StatsTags
+        public static List<string> UserStatsTags
         {
-            get
-            {
-                return new List<string>(statsRowFormat.Split(' '));
-            }
+            get => new List<string>(statsRowFormat.Split(' '));
         }
 
         public static UserCredential GoogleUserCredentials { get; private set; }
+        public static List<string> UserStatsPriority
+        {
+            get => new List<string>(statsPriority.Split(' '));
+        }
     }
 }

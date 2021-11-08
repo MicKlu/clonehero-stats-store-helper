@@ -1,8 +1,5 @@
-﻿using BepInEx;
+using BepInEx;
 using HarmonyLib;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Util.Store;
-using Google.Apis.Http;
 using StatsStoreHelper.MyWrappers;
 using System;
 using System.Collections.Generic;
@@ -50,6 +47,7 @@ namespace StatsStoreHelper
             }
         }
 
+        // TODO: Hash by chart's file
         private string HashSong(string song)
         {
             using(SHA256Managed sha256 = new SHA256Managed())
@@ -100,12 +98,16 @@ namespace StatsStoreHelper
                     Logger.LogInfo($"      Avg. multiplier: {pss.AvgMultiplier}");
                     i++;
                 }
+
+                SaveStats();
+
             } catch(Exception e)
             {
                 Logger.LogError(e.Message);
+                Logger.LogError(e.StackTrace);
             }
 
-            SaveStats();
+            
 
             this.statsRead = true;
             Logger.LogInfo($"LastUpdate - End");
@@ -139,11 +141,30 @@ namespace StatsStoreHelper
                 { "%hash%", hash }
             };
 
-            foreach(string tag in UserConfig.StatsTags)
+            foreach(string tag in UserConfig.UserStatsTags)
                 statsRowBuilder.AddStat(tag, stats[tag]);
 
-            // TODO: Find row, compare stats and decide whether to add or overwrite
-            spreadsheet.AppendRow(statsRowBuilder.Build());
+            FindRowResult findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", hash } });
+            
+            StatsRow currentStats = statsRowBuilder.Build();
+
+            if(findRowResult.RowData == null)
+            {
+                System.Console.WriteLine("New Song! – Adding");
+                spreadsheet.AppendRow(currentStats.RowData);
+            }
+            else
+            {
+                System.Console.WriteLine("Existing Song – Checking");
+                StatsRow storedStats = new StatsRow(findRowResult.RowData);
+                if(storedStats.CompareTo(currentStats) > 0)
+                {
+                    System.Console.WriteLine("Better stats! – Updating");
+                    spreadsheet.UpdateRow(findRowResult.Index, currentStats.RowData);
+                }
+                else
+                    System.Console.WriteLine("No improvement :( – Leaving");
+            }
         }
     }
 }
