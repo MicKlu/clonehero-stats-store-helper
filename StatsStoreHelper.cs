@@ -47,20 +47,6 @@ namespace StatsStoreHelper
             }
         }
 
-        // TODO: Hash by chart's file
-        private string HashSong(string song)
-        {
-            using(SHA256Managed sha256 = new SHA256Managed())
-            {
-                string hash = "";
-                byte[] buffer = Encoding.UTF8.GetBytes(song);
-                byte[] hashBytes = sha256.ComputeHash(buffer);
-                foreach(byte b in hashBytes)
-                    hash += b.ToString("x2");
-                return hash;
-            }
-        }
-
         private void LateUpdate()
         {
             Scene currentScene = SceneManager.GetActiveScene();
@@ -122,8 +108,8 @@ namespace StatsStoreHelper
             // TODO: Get player name from game
             await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, "MGRINZ");
 
-            string hash = HashSong(currentSongEntry.Name);
-
+            string hash = currentSongEntry.GetSHA256Hash();
+            
             StatsRowBuilder statsRowBuilder = new StatsRowBuilder();
             Dictionary<string, object> stats = new Dictionary<string, object>
             {
