@@ -1,42 +1,34 @@
 using BepInEx;
 using HarmonyLib;
 using StatsStoreHelper.MyWrappers;
+using StatsStoreHelper.GoogleApi;
+using StatsStoreHelper.Utils;
 using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace StatsStoreHelper
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class StatsStoreHelper : BaseUnityPlugin
     {
-        private bool statsRead = false;
+        public static StatsStoreHelper Instance { get; private set; }
 
         private async void Awake()
         {
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
-
+            Instance = this;
+            
             try
             {
                 await UserConfig.Authorize();
                 GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
                 await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, "MGRINZ");
 
-                // Dictionary<string, object> query = new Dictionary<string, object>
-                // {
-                //     { "%hash%", hash }
-                // };
+                System.Console.WriteLine("Patching...");
 
-                // int rowIndex = await spreadsheet.FindRow(query);
-                // System.Console.WriteLine(rowIndex);
+                var harmony = new Harmony("com.github.mgrinz.clonehero-stats-store-helper");
+                harmony.PatchAll();
 
-                // spreadsheet.AppendRow(statsRowBuilder.Build());
-                //spreadsheet.UpdateRow(3, statsRowBuilder.Build());
+                System.Console.WriteLine("Patched");
             }
             catch(Exception e)
             {
@@ -49,108 +41,8 @@ namespace StatsStoreHelper
 
         private void LateUpdate()
         {
-            Scene currentScene = SceneManager.GetActiveScene();
-
-            if(currentScene.name != "EndOfSong")
-            {
-                this.statsRead = false;
-                return;
-            }
-
-            if(this.statsRead)
-                return;
-
-            Logger.LogInfo($"LastUpdate - Start");
-            
-            MySongEntry currentSongEntry = MyGlobalVariables.GetInstance().CurrentSongEntry;
-            
-            Logger.LogInfo($"{currentSongEntry.Artist} - {currentSongEntry.Name}");
-            Logger.LogInfo($"  Charter: {currentSongEntry.Charter}");
-            Logger.LogInfo($"  Icon: {currentSongEntry.iconName}");
-
-            try
-            {
-                MyPlayerSongStats[] playerSongStats = MySongStats.PlayerSongStats;
-                Logger.LogInfo("  Results:");
-                int i = 0;
-                foreach(MyPlayerSongStats pss in playerSongStats)
-                {
-                    Logger.LogInfo($"    Player: {i}");
-                    Logger.LogInfo($"      Score: {pss.Score}");
-                    Logger.LogInfo($"      Stars: {MySongStats.Stars}");
-                    Logger.LogInfo($"      Accuracy: {pss.notesHit}/{pss.notesAll} ({pss.Accuracy})");
-                    Logger.LogInfo($"      SP: {pss.spPhrasesHit}/{pss.spPhrasesAll}");
-                    Logger.LogInfo($"      Combo: {pss.combo}");
-                    Logger.LogInfo($"      Avg. multiplier: {pss.AvgMultiplier}");
-                    i++;
-                }
-
-                SaveStats();
-
-            } catch(Exception e)
-            {
-                Logger.LogError(e.Message);
-                Logger.LogError(e.StackTrace);
-            }
-
-            
-
-            this.statsRead = true;
-            Logger.LogInfo($"LastUpdate - End");
         }
 
-        private async void SaveStats()
-        {
-            MySongEntry currentSongEntry = MyGlobalVariables.GetInstance().CurrentSongEntry;
-            MyPlayerSongStats playerSongStats = MySongStats.PlayerSongStats[0];
-
-            GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
-            // TODO: Get player name from game
-            await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, "MGRINZ");
-
-            string hash = currentSongEntry.GetSHA256Hash();
-            
-            StatsRowBuilder statsRowBuilder = new StatsRowBuilder();
-            Dictionary<string, object> stats = new Dictionary<string, object>
-            {
-                { "%date%", DateTime.Now },
-                { "%artist%", currentSongEntry.Artist },
-                { "%song%", currentSongEntry.Name },
-                { "%source%", currentSongEntry.iconName },
-                { "%charter%", currentSongEntry.Charter },
-                { "%score%", playerSongStats.Score },
-                { "%stars%", MySongStats.Stars },
-                { "%accuracy%", Convert.ToDouble(playerSongStats.Accuracy.TrimEnd('%')) / 100 },
-                { "%sp%", $"{playerSongStats.spPhrasesHit}/{playerSongStats.spPhrasesAll}" },
-                { "%fc%", (playerSongStats.combo == playerSongStats.notesAll) ? true : false },
-                { "%screenshot%", "https://aniceimage/" },
-                { "%hash%", hash }
-            };
-
-            foreach(string tag in UserConfig.UserStatsTags)
-                statsRowBuilder.AddStat(tag, stats[tag]);
-
-            FindRowResult findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", hash } });
-            
-            StatsRow currentStats = statsRowBuilder.Build();
-
-            if(findRowResult.RowData == null)
-            {
-                System.Console.WriteLine("New Song! – Adding");
-                spreadsheet.AppendRow(currentStats.RowData);
-            }
-            else
-            {
-                System.Console.WriteLine("Existing Song – Checking");
-                StatsRow storedStats = new StatsRow(findRowResult.RowData);
-                if(storedStats.CompareTo(currentStats) > 0)
-                {
-                    System.Console.WriteLine("Better stats! – Updating");
-                    spreadsheet.UpdateRow(findRowResult.Index, currentStats.RowData);
-                }
-                else
-                    System.Console.WriteLine("No improvement :( – Leaving");
-            }
-        }
+        
     }
 }

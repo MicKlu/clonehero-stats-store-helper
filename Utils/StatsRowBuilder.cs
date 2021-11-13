@@ -2,7 +2,7 @@ using Google.Apis.Sheets.v4.Data;
 using System;
 using System.Collections.Generic;
 
-namespace StatsStoreHelper
+namespace StatsStoreHelper.Utils
 {
     public class StatsRowBuilder
     {

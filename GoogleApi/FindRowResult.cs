@@ -1,6 +1,6 @@
 using Google.Apis.Sheets.v4.Data;
 
-namespace StatsStoreHelper
+namespace StatsStoreHelper.GoogleApi
 {
     public class FindRowResult
     {
