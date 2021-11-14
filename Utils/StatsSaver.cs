@@ -101,10 +101,10 @@ namespace StatsStoreHelper.Utils
             byte[] screenshot = File.ReadAllBytes(ScreenshotPath);            
 
             GoogleApi.GoogleApi googleApi = GoogleApi.GoogleApi.GetInstance();
-            string uploadToken = await googleApi.UploadToGooglePhotos(screenshot);
-            await googleApi.CreateMediaItem(Path.GetFileName(ScreenshotPath), uploadToken);
+            string uploadToken = await googleApi.UploadToGooglePhotos(screenshot);            
+            await googleApi.CreateMediaItemInGooglePhotos(Path.GetFileName(ScreenshotPath), uploadToken);
 
-            // TODO: Create media, add to album, share it and archive it
+            // TODO: Add to album, share it and archive it
 
             File.Delete(ScreenshotPath);
             return "https://aniceimage/";

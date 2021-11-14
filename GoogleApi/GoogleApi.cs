@@ -1,6 +1,7 @@
 using Google.Apis.Auth.OAuth2;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -16,6 +17,10 @@ namespace StatsStoreHelper.GoogleApi
         private static GoogleApi instance = null;
         private static readonly object instanceLock = new object();
         private UserCredential credentials;
+        private string googleAlbumTitle;
+
+        public string GooglePhotosAlbumId { get; private set; }
+
         private static HttpClient httpClient = null;
 
         private GoogleApi() {}
@@ -29,12 +34,17 @@ namespace StatsStoreHelper.GoogleApi
             return instance;
         }
 
-        public void Init(UserCredential credentials)
+        public async void Init(UserCredential credentials, string googleAlbumTitle)
         {
             if(httpClient == null)
                 httpClient = new HttpClient();
             
             this.credentials = credentials;
+            this.googleAlbumTitle = googleAlbumTitle;
+            
+            GooglePhotosAlbumId = await GetAlbumIdFromGooglePhotos();
+            if(GooglePhotosAlbumId == null)
+                GooglePhotosAlbumId = await CreatePhotosAlbum();
         }
 
         private async Task<HttpRequestMessage> CreateRequest(HttpMethod method, string requestUri)
@@ -79,7 +89,7 @@ namespace StatsStoreHelper.GoogleApi
             return token;
         }
 
-        public async Task CreateMediaItem(object fileName, object uploadToken)
+        public async Task CreateMediaItemInGooglePhotos(object fileName, object uploadToken)
         {
             HttpRequestMessage request = await CreateRequest(HttpMethod.Post, "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate");
             
@@ -91,13 +101,52 @@ namespace StatsStoreHelper.GoogleApi
             newMediaItems.Add("simpleMediaItem", simpleMediaItem);
 
             var body = new Dictionary<string, object>();
-            // body.Add("albumId", albumId);
+            body.Add("albumId", GooglePhotosAlbumId);
             
             body.Add("newMediaItems", newMediaItems);
 
             request.Content = new StringContent(JsonConvert.SerializeObject(body));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             HttpResponseMessage response = await httpClient.SendAsync(request);
+        }
+
+        public async Task<string> CreatePhotosAlbum()
+        {
+            HttpRequestMessage request = await CreateRequest(HttpMethod.Post, "https://photoslibrary.googleapis.com/v1/albums");
+            Dictionary<string, object> body = new Dictionary<string, object>()
+            {
+                { "album", new Dictionary<string, string>() { { "title", this.googleAlbumTitle } } }
+            };
+            request.Content = new StringContent(JsonConvert.SerializeObject(body));
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            HttpResponseMessage response = await httpClient.SendAsync(request);
+
+            string result = await response.Content.ReadAsStringAsync();
+            JObject resultObject = JObject.Parse(result);
+            GooglePhotosAlbumId = (string) resultObject["id"];
+
+            return GooglePhotosAlbumId;
+        }
+
+        private async Task<string> GetAlbumIdFromGooglePhotos()
+        {
+            HttpRequestMessage request = await CreateRequest(HttpMethod.Get, "https://photoslibrary.googleapis.com/v1/albums");
+            HttpResponseMessage response = await httpClient.SendAsync(request);
+            // TODO: Handle connection errors
+
+            string result = await response.Content.ReadAsStringAsync();
+            JObject resultObject = JObject.Parse(result);
+
+            if(!resultObject.ContainsKey("albums"))
+                return null;
+
+            List<JToken> albums = resultObject["albums"].Children().ToList();
+
+            foreach(var album in albums)
+                if((string) album["title"] == this.googleAlbumTitle)
+                    return (string) album["id"];
+
+            return null;
         }
 
     }
