@@ -2,6 +2,7 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Util.Store;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -52,7 +53,7 @@ namespace StatsStoreHelper
                 scopes,
                 "user",
                 CancellationToken.None,
-                new FileDataStore($"{BepInEx.Paths.ConfigPath}/{PluginInfo.PLUGIN_NAME}", true));
+                new FileDataStore(Path.Combine(BepInEx.Paths.ConfigPath, PluginInfo.PLUGIN_NAME), true));
         }
 
         public static List<object> GetSheetHeaders()

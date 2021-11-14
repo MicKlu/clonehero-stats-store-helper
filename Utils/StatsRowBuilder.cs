@@ -18,6 +18,21 @@ namespace StatsStoreHelper.Utils
 
         public StatsRowBuilder AddStat(string statTag, object value)
         {
+            CellData cell = GetFormatedCell(statTag, value);
+            row.RowData.Values.Add(cell);
+            return this;
+        }
+
+        public StatsRowBuilder ReplaceStat(string statTag, object value)
+        {
+            int statIndex = UserConfig.UserStatsTags.IndexOf(statTag);
+            CellData cell = GetFormatedCell(statTag, value);
+            row.RowData.Values[statIndex] = cell;
+            return this;
+        }
+
+        private CellData GetFormatedCell(string statTag, object value)
+        {
             CellData cell = new CellData();
             cell.UserEnteredValue = new ExtendedValue();
 
@@ -90,9 +105,7 @@ namespace StatsStoreHelper.Utils
                 }
             }
             cell.UserEnteredFormat = cellFormat;
-
-            row.RowData.Values.Add(cell);
-            return this;
+            return cell;
         }
 
         public StatsRow Build()

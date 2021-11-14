@@ -12,6 +12,8 @@ namespace StatsStoreHelper.Patches
         {
             var statsSaver = StatsSaver.GetInstance();
             statsSaver.Reset();
+
+            // TODO: Auto screenshot if user configured it
         }
     }
 }

@@ -5,8 +5,6 @@ namespace StatsStoreHelper.MyWrappers
 {
     public class MyPlayerSongStats : MyWrapper
     {
-        private object chPlayerSongStats;
-        private Type chPlayerSongStatsType;
         public readonly int notesHit;
         public readonly int notesAll;
         public readonly int combo;

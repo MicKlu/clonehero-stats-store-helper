@@ -31,6 +31,7 @@ namespace StatsStoreHelper.MyWrappers
 
         public string Charter
         {
+            // TODO: Strip html tags
             get => GetPropertyValue(this.chSongEntry.Charter);
         }
 

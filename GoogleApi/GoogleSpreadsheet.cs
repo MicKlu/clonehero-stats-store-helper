@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
@@ -5,6 +6,7 @@ using Google.Apis.Sheets.v4.Data;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace StatsStoreHelper.GoogleApi
 {
@@ -34,9 +36,6 @@ namespace StatsStoreHelper.GoogleApi
             if(this.credentials != credentials)
             {
                 this.credentials = credentials;
-
-                System.Console.WriteLine("Initializing GoogleApi");
-                GoogleApi.GetInstance().Init(credentials);
 
                 System.Console.WriteLine("Initializing SheetsService");
                 sheetsService = new SheetsService(new BaseClientService.Initializer
@@ -76,14 +75,38 @@ namespace StatsStoreHelper.GoogleApi
             {
                 this.SheetName = sheetName;
                 this.sheetId = await GetSheetId(sheetName);
-                if(this.spreadsheetId == null)
+                if(this.sheetId == 0)
                     this.sheetId = await AddSheet(CreateSheetTemplate());
             }
         }
 
-        private Task<int> AddSheet(Sheet sheet)
+        private async Task<int> AddSheet(Sheet sheet)
         {
-            throw new NotImplementedException();
+            Request request = new Request();
+            request.AddSheet = new AddSheetRequest();
+            request.AddSheet.Properties = new SheetProperties();
+            request.AddSheet.Properties.Title = sheet.Properties.Title;
+            
+            BatchUpdateSpreadsheetRequest body = new BatchUpdateSpreadsheetRequest();
+            body.Requests = new List<Request>() { request };
+            SpreadsheetsResource.BatchUpdateRequest batchUpdateRequest = sheetsService.Spreadsheets.BatchUpdate(body, spreadsheetId);
+
+            BatchUpdateSpreadsheetResponse response = await batchUpdateRequest.ExecuteAsync();
+            int sheetId = (int) response.Replies[0].AddSheet.Properties.SheetId;
+            
+            request = new Request();
+            request.AppendCells = new AppendCellsRequest();
+            request.AppendCells.SheetId = sheetId;
+            request.AppendCells.Rows = sheet.Data[0].RowData;
+            request.AppendCells.Fields = "*";
+
+            body = new BatchUpdateSpreadsheetRequest();
+            body.Requests = new List<Request>() { request };
+            batchUpdateRequest = sheetsService.Spreadsheets.BatchUpdate(body, spreadsheetId);
+
+            response = await batchUpdateRequest.ExecuteAsync();
+
+            return sheetId;
         }
 
         public async void AppendRow(RowData row)
@@ -183,8 +206,20 @@ namespace StatsStoreHelper.GoogleApi
             SpreadsheetsResource.GetRequest getRequest = sheetsService.Spreadsheets.Get(spreadsheetId);
             getRequest.Fields = "sheets.properties";
             getRequest.Ranges = new Google.Apis.Util.Repeatable<string>(new List<string> { $"'{SheetName}'" });
-            Spreadsheet spreadsheet = await getRequest.ExecuteAsync();
-            return (int) spreadsheet.Sheets[0].Properties.SheetId;
+            
+            try
+            {
+                Spreadsheet spreadsheet = await getRequest.ExecuteAsync();
+                return (int) spreadsheet.Sheets[0].Properties.SheetId;
+            }
+            catch(Google.GoogleApiException e)
+            {   
+                JObject error = JObject.Parse(e.Error.ErrorResponseContent);
+                if((string) error["error"]["status"] == "INVALID_ARGUMENT")
+                    return 0;
+
+                throw e;
+            }
         }
 
         private async Task<Spreadsheet> CreateSpreadsheet()

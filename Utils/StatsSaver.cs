@@ -1,8 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
 using StatsStoreHelper.GoogleApi;
 using StatsStoreHelper.MyWrappers;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace StatsStoreHelper.Utils
 {
@@ -10,9 +12,16 @@ namespace StatsStoreHelper.Utils
     {
         private static StatsSaver instance;
         private static readonly object instanceLock = new object();
-        private bool statsSaved = false;
+        private bool statsSaved;
+        private string stashPath;
 
-        private StatsSaver() {}
+        public string ScreenshotPath { get; set; }
+
+        private StatsSaver()
+        {
+            statsSaved = false;
+            stashPath = Path.Combine(BepInEx.Paths.ConfigPath, PluginInfo.PLUGIN_NAME, "stash");
+        }
 
         internal static StatsSaver GetInstance()
         {
@@ -27,11 +36,13 @@ namespace StatsStoreHelper.Utils
         {
             if(this.statsSaved)
                 return;
-                
+
             MySongEntry currentSongEntry = MyGlobalVariables.GetInstance().CurrentSongEntry;
             MyPlayerSongStats playerSongStats = MySongStats.PlayerSongStats[0];
 
             string hash = currentSongEntry.GetSHA256Hash();
+
+            BackUpScreenshot();
             
             StatsRowBuilder statsRowBuilder = new StatsRowBuilder();
             Dictionary<string, object> stats = new Dictionary<string, object>
@@ -46,32 +57,65 @@ namespace StatsStoreHelper.Utils
                 { "%accuracy%", Convert.ToDouble(playerSongStats.Accuracy.TrimEnd('%')) / 100 },
                 { "%sp%", $"{playerSongStats.spPhrasesHit}/{playerSongStats.spPhrasesAll}" },
                 { "%fc%", (playerSongStats.combo == playerSongStats.notesAll) ? true : false },
-                { "%screenshot%", "https://aniceimage/" },
+                { "%screenshot%", ScreenshotPath },
                 { "%hash%", hash }
             };
 
             foreach(string tag in UserConfig.UserStatsTags)
                 statsRowBuilder.AddStat(tag, stats[tag]);
-
-            StatsRow currentStats = statsRowBuilder.Build();
-
+            
             try
             {
+                string screenshotUrl = await UploadScreenshot();
+                stats["%screenshot%"] = screenshotUrl;
+                statsRowBuilder.ReplaceStat("%screenshot%", screenshotUrl);
+
+                StatsRow currentStats = statsRowBuilder.Build();
+
                 await SaveToSpreadsheet(currentStats, hash);
             }
-            catch
+            catch(Exception e)
             {
-                Stash(currentStats);
+                System.Console.WriteLine(e.Message);
+                System.Console.WriteLine(e.StackTrace);
+
+                Stash(stats);
             }
             
             this.statsSaved = true;
         }
 
+        private void BackUpScreenshot()
+        {
+            var oldScreenshotPath = ScreenshotPath;
+            ScreenshotPath = Path.Combine(stashPath, Path.GetFileName(oldScreenshotPath));
+
+            if(!Directory.Exists(stashPath))
+                Directory.CreateDirectory(stashPath);
+
+            File.Copy(oldScreenshotPath, ScreenshotPath);
+        }
+
+        private async Task<string> UploadScreenshot()
+        {
+            byte[] screenshot = File.ReadAllBytes(ScreenshotPath);            
+
+            GoogleApi.GoogleApi googleApi = GoogleApi.GoogleApi.GetInstance();
+            string uploadToken = await googleApi.UploadToGooglePhotos(screenshot);
+            await googleApi.CreateMediaItem(Path.GetFileName(ScreenshotPath), uploadToken);
+
+            // TODO: Create media, add to album, share it and archive it
+
+            File.Delete(ScreenshotPath);
+            return "https://aniceimage/";
+        }
+
         private async Task SaveToSpreadsheet(StatsRow currentStats, string songHash)
         {
             GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
-            // TODO: Get player name from game
-            await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, "MGRINZ");
+            
+            string playerName = MyGlobalVariables.GetInstance().CHPlayers[0].PlayerProfile.playerName;
+            await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, playerName);
 
             FindRowResult findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", songHash } });
             if(findRowResult.RowData == null)
@@ -93,8 +137,9 @@ namespace StatsStoreHelper.Utils
             }
         }
 
-        private void Stash(StatsRow currentStats)
+        private void Stash(Dictionary<string, object> stats)
         {
+            // JsonConvert.SerializeObject(stats);
             throw new NotImplementedException();
         }
 

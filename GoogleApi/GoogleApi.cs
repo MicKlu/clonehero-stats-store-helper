@@ -1,4 +1,5 @@
 using Google.Apis.Auth.OAuth2;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,7 +39,7 @@ namespace StatsStoreHelper.GoogleApi
 
         private async Task<HttpRequestMessage> CreateRequest(HttpMethod method, string requestUri)
         {
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+            HttpRequestMessage request = new HttpRequestMessage(method, requestUri);
             await credentials.RefreshTokenAsync(CancellationToken.None);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credentials.Token.AccessToken);
             return request;
@@ -63,17 +64,40 @@ namespace StatsStoreHelper.GoogleApi
             return null;
         }
 
-        public async Task<string> GetRequest(string requestUri, Dictionary<string, string> query)
+        public async Task<string> UploadToGooglePhotos(byte[] file)
         {
-            string queryString = "?";
-            HttpRequestMessage request = await CreateRequest(HttpMethod.Get, requestUri);
-
-            foreach(KeyValuePair<string, string> queryPair in query)
-                queryString += $"{queryPair.Key}={WebUtility.UrlEncode(queryPair.Value)}&";
-
+            HttpRequestMessage request = await CreateRequest(HttpMethod.Post, "https://photoslibrary.googleapis.com/v1/uploads");
+            request.Headers.Add("X-Goog-Upload-Content-Type", "image/png");
+            request.Headers.Add("X-Goog-Upload-Protocol", "raw");
+            request.Content = new ByteArrayContent(file);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             HttpResponseMessage response = await httpClient.SendAsync(request);
-            string result = await response.Content.ReadAsStringAsync();
-            return result;
+
+            // TODO: Handle connection errors
+
+            string token = await response.Content.ReadAsStringAsync();
+            return token;
+        }
+
+        public async Task CreateMediaItem(object fileName, object uploadToken)
+        {
+            HttpRequestMessage request = await CreateRequest(HttpMethod.Post, "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate");
+            
+            var simpleMediaItem = new Dictionary<string, object>();
+            simpleMediaItem.Add("fileName", fileName);
+            simpleMediaItem.Add("uploadToken", uploadToken);
+
+            var newMediaItems = new Dictionary<string, object>();
+            newMediaItems.Add("simpleMediaItem", simpleMediaItem);
+
+            var body = new Dictionary<string, object>();
+            // body.Add("albumId", albumId);
+            
+            body.Add("newMediaItems", newMediaItems);
+
+            request.Content = new StringContent(JsonConvert.SerializeObject(body));
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            HttpResponseMessage response = await httpClient.SendAsync(request);
         }
 
     }
