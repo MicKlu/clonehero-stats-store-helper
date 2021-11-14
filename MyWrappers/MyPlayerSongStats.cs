@@ -3,7 +3,7 @@ using System;
 
 namespace StatsStoreHelper.MyWrappers
 {
-    public class MyPlayerSongStats
+    public class MyPlayerSongStats : MyWrapper
     {
         private object chPlayerSongStats;
         private Type chPlayerSongStatsType;
@@ -14,9 +14,8 @@ namespace StatsStoreHelper.MyWrappers
         public readonly int spPhrasesAll;
 
         public MyPlayerSongStats(object _chPlayerSongStats)
+            : base(_chPlayerSongStats, "\u030E\u0310\u0316\u031B\u0319\u031C\u0317\u0313\u030F\u0313\u0310")
         {
-            this.chPlayerSongStats = _chPlayerSongStats;
-            this.chPlayerSongStatsType = AccessTools.TypeByName("\u030E\u0310\u0316\u031B\u0319\u031C\u0317\u0313\u030F\u0313\u0310");
             this.notesHit = (int) GetFieldValue("\u031B\u030E\u0310\u0317\u0312\u0317\u030E\u0318\u0319\u0314\u0314");
             this.notesAll = (int) GetFieldValue("\u031C\u0310\u031C\u031C\u031B\u031A\u0318\u0311\u0316\u031B\u0312");
             this.combo = (int) GetFieldValue("\u0318\u0316\u031B\u0311\u031B\u0313\u0315\u030D\u031B\u0310\u031A");
@@ -37,18 +36,6 @@ namespace StatsStoreHelper.MyWrappers
         public float AvgMultiplier
         {
             get { return (float) GetPropertyValue("\u030D\u0318\u030D\u0319\u0311\u031B\u0311\u031A\u030F\u031A\u0310"); }
-        }
-
-        private object GetPropertyValue(string propertyName)
-        {
-            var property = AccessTools.Property(this.chPlayerSongStatsType, propertyName);
-            return property.GetValue(this.chPlayerSongStats);
-        }
-
-        private object GetFieldValue(string fieldName)
-        {
-            var field = AccessTools.Field(this.chPlayerSongStatsType, fieldName);
-            return field.GetValue(this.chPlayerSongStats);
         }
     }
 }
