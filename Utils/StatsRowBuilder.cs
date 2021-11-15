@@ -31,7 +31,7 @@ namespace StatsStoreHelper.Utils
             return this;
         }
 
-        private CellData GetFormatedCell(string statTag, object value)
+        public static CellData GetFormatedCell(string statTag, object value)
         {
             CellData cell = new CellData();
             cell.UserEnteredValue = new ExtendedValue();

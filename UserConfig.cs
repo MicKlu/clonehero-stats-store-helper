@@ -24,12 +24,14 @@ namespace StatsStoreHelper
             { "%sp%", "Star Powers" },
             { "%fc%", "FC" },
             { "%screenshot%", "Screenshot" },
-            { "%hash%", "Hash" }
+            { "%screenshotdelete%", "Screenshot Delete Hash" },
+            { "%hash%", "Hash" },
+            { "%null%", "" }
         };
 
         // TODO: Load it from config file
         private static string statsRowFormat = 
-            "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %screenshot% %hash%";
+            "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %screenshot% %screenshotdelete% %hash%";
         private static string statsPriority = 
             "%score% %fc% %accuracy% %stars%";
 

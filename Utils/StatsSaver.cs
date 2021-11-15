@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+
 using StatsStoreHelper.Apis.GoogleApi;
 using StatsStoreHelper.MyWrappers;
 using System;
@@ -58,21 +58,20 @@ namespace StatsStoreHelper.Utils
                 { "%sp%", $"{playerSongStats.spPhrasesHit}/{playerSongStats.spPhrasesAll}" },
                 { "%fc%", (playerSongStats.combo == playerSongStats.notesAll) ? true : false },
                 { "%screenshot%", ScreenshotPath },
-                { "%hash%", hash }
+                { "%screenshotdelete%", "" },
+                { "%hash%", hash },
+                { "%null%", "" }
             };
 
             foreach(string tag in UserConfig.UserStatsTags)
                 statsRowBuilder.AddStat(tag, stats[tag]);
             
+            StatsRow currentStats = statsRowBuilder.Build();
+            
             try
             {
-                string screenshotUrl = await UploadScreenshot();
-                stats["%screenshot%"] = screenshotUrl;
-                statsRowBuilder.ReplaceStat("%screenshot%", screenshotUrl);
-
-                StatsRow currentStats = statsRowBuilder.Build();
-
                 await SaveToSpreadsheet(currentStats, hash);
+                File.Delete(ScreenshotPath);
             }
             catch(Exception e)
             {
@@ -96,20 +95,6 @@ namespace StatsStoreHelper.Utils
             File.Copy(oldScreenshotPath, ScreenshotPath);
         }
 
-        private async Task<string> UploadScreenshot()
-        {
-            byte[] screenshot = File.ReadAllBytes(ScreenshotPath);            
-
-            GoogleApi googleApi = GoogleApi.GetInstance();
-            string uploadToken = await googleApi.UploadToGooglePhotos(screenshot);            
-            string screenshotUrl = await googleApi.CreateMediaItemInGooglePhotos(Path.GetFileName(ScreenshotPath), uploadToken);
-
-            // TODO: Share
-
-            File.Delete(ScreenshotPath);
-            return screenshotUrl;
-        }
-
         private async Task SaveToSpreadsheet(StatsRow currentStats, string songHash)
         {
             GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
@@ -121,6 +106,7 @@ namespace StatsStoreHelper.Utils
             if(findRowResult.RowData == null)
             {
                 System.Console.WriteLine("New Song! – Adding");
+                await currentStats.UploadScreenshot(ScreenshotPath);
                 spreadsheet.AppendRow(currentStats.RowData);
             }
             else
@@ -130,6 +116,8 @@ namespace StatsStoreHelper.Utils
                 if(storedStats.CompareTo(currentStats) > 0)
                 {
                     System.Console.WriteLine("Better stats! – Updating");
+                    storedStats.DeleteScreenshot();
+                    await currentStats.UploadScreenshot(ScreenshotPath);
                     spreadsheet.UpdateRow(findRowResult.Index, currentStats.RowData);
                 }
                 else

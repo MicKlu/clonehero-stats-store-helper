@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using Google.Apis.Sheets.v4.Data;
+using StatsStoreHelper.Apis;
 
 namespace StatsStoreHelper.Utils
 {
@@ -42,6 +45,49 @@ namespace StatsStoreHelper.Utils
                 else if(extendedValue.StringValue != null)
                     StatsDict[statTag] = extendedValue.StringValue;
             }
+        }
+
+        public async Task UploadScreenshot(string screenshotPath)
+        {
+            int screenshotIndex = UserConfig.UserStatsTags.IndexOf("%screenshot%");
+            int screenshotDeleteHashIndex = UserConfig.UserStatsTags.IndexOf("%screenshotdelete%");
+
+            if(screenshotIndex == -1 || screenshotDeleteHashIndex == -1)
+                return;
+
+            if(screenshotIndex >= this.RowData.Values.Count)
+                return;
+                
+            if(screenshotDeleteHashIndex >= this.RowData.Values.Count)
+                return;
+
+            byte[] screenshot = File.ReadAllBytes(screenshotPath);
+
+            ImgurApi imgurApi = ImgurApi.GetInstance();
+            Dictionary<string, string> uploadResult = await imgurApi.UploadImage(screenshot);
+
+            this.RowData.Values[screenshotIndex] = StatsRowBuilder.GetFormatedCell("%screenshot%", uploadResult["link"]);
+            this.RowData.Values[screenshotDeleteHashIndex] = StatsRowBuilder.GetFormatedCell("%screenshotdelete%", uploadResult["deletehash"]);
+
+            StatsDict["%screenshot%"] = uploadResult["link"];
+            StatsDict["%screenshotdelete%"] = uploadResult["deletehash"];
+        }
+
+        internal async void DeleteScreenshot()
+        {
+            if(!UserConfig.UserStatsTags.Contains("%screenshot%"))
+                return;
+
+            if(!UserConfig.UserStatsTags.Contains("%screenshotdelete%"))
+                return;
+            
+            string deleteHash = (string) StatsDict["%screenshotdelete%"];
+
+            if(deleteHash.Length == 0)
+                return;
+
+            ImgurApi imgurApi = ImgurApi.GetInstance();
+            await imgurApi.DeleteImage(deleteHash);
         }
 
         public int CompareTo(StatsRow otherStats)

@@ -21,7 +21,7 @@ namespace StatsStoreHelper.Apis
             this.clientId = "546c25a59c58ad7";  // Hardcoded now; might need retrieving
         }
 
-        public ImgurApi GetInstance()
+        public static ImgurApi GetInstance()
         {
             if(instance == null)
                 lock(instanceLock)
