@@ -1,5 +1,5 @@
 using Newtonsoft.Json;
-using StatsStoreHelper.GoogleApi;
+using StatsStoreHelper.Apis.GoogleApi;
 using StatsStoreHelper.MyWrappers;
 using System;
 using System.Collections.Generic;
@@ -100,7 +100,7 @@ namespace StatsStoreHelper.Utils
         {
             byte[] screenshot = File.ReadAllBytes(ScreenshotPath);            
 
-            GoogleApi.GoogleApi googleApi = GoogleApi.GoogleApi.GetInstance();
+            GoogleApi googleApi = GoogleApi.GetInstance();
             string uploadToken = await googleApi.UploadToGooglePhotos(screenshot);            
             string screenshotUrl = await googleApi.CreateMediaItemInGooglePhotos(Path.GetFileName(ScreenshotPath), uploadToken);
 

@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using StatsStoreHelper.Apis.GoogleApi;
 
 namespace StatsStoreHelper
 {
@@ -18,7 +19,7 @@ namespace StatsStoreHelper
 
             await UserConfig.Authorize();
             Logger.LogInfo("Initializing GoogleApi");
-            GoogleApi.GoogleApi.GetInstance().Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME);
+            GoogleApi.GetInstance().Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME);
             
             var harmony = new Harmony("com.github.mgrinz.clonehero-stats-store-helper");
             harmony.PatchAll();

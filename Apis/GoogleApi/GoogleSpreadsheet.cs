@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-namespace StatsStoreHelper.GoogleApi
+namespace StatsStoreHelper.Apis.GoogleApi
 {
     public class GoogleSpreadsheet
     {
