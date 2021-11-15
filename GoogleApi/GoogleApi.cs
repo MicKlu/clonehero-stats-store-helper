@@ -89,7 +89,7 @@ namespace StatsStoreHelper.GoogleApi
             return token;
         }
 
-        public async Task CreateMediaItemInGooglePhotos(object fileName, object uploadToken)
+        public async Task<string> CreateMediaItemInGooglePhotos(object fileName, object uploadToken)
         {
             HttpRequestMessage request = await CreateRequest(HttpMethod.Post, "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate");
             
@@ -108,6 +108,11 @@ namespace StatsStoreHelper.GoogleApi
             request.Content = new StringContent(JsonConvert.SerializeObject(body));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             HttpResponseMessage response = await httpClient.SendAsync(request);
+            
+            string result = await response.Content.ReadAsStringAsync();
+            JObject resultObject = JObject.Parse(result);
+            System.Console.WriteLine(result);
+            return (string) resultObject["newMediaItemResults"].Children().ToList()[0]["mediaItem"]["productUrl"];
         }
 
         public async Task<string> CreatePhotosAlbum()
@@ -124,6 +129,9 @@ namespace StatsStoreHelper.GoogleApi
             string result = await response.Content.ReadAsStringAsync();
             JObject resultObject = JObject.Parse(result);
             GooglePhotosAlbumId = (string) resultObject["id"];
+
+            request = await CreateRequest(HttpMethod.Post, $"https://photoslibrary.googleapis.com/v1/albums/{GooglePhotosAlbumId}:share");
+            response = await httpClient.SendAsync(request);
 
             return GooglePhotosAlbumId;
         }

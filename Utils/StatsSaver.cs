@@ -102,12 +102,12 @@ namespace StatsStoreHelper.Utils
 
             GoogleApi.GoogleApi googleApi = GoogleApi.GoogleApi.GetInstance();
             string uploadToken = await googleApi.UploadToGooglePhotos(screenshot);            
-            await googleApi.CreateMediaItemInGooglePhotos(Path.GetFileName(ScreenshotPath), uploadToken);
+            string screenshotUrl = await googleApi.CreateMediaItemInGooglePhotos(Path.GetFileName(ScreenshotPath), uploadToken);
 
-            // TODO: Add to album, share it and archive it
+            // TODO: Share
 
             File.Delete(ScreenshotPath);
-            return "https://aniceimage/";
+            return screenshotUrl;
         }
 
         private async Task SaveToSpreadsheet(StatsRow currentStats, string songHash)
