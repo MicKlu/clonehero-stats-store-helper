@@ -1,11 +1,49 @@
 using Google.Apis.Sheets.v4.Data;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace StatsStoreHelper.Utils
 {
     public class StatsRowBuilder
     {
+        // TODO: Add/verify all known "official" icons
+        private static readonly Dictionary<string, string> IconSources = new Dictionary<string, string> ()
+        {
+            { "gh", "Guitar Hero" },
+            { "gh2", "Guitar Hero II" },
+            { "gh2dlc", "Guitar Hero II DLC" },
+            { "gh80s", "Guitar Hero Encore: Rocks the 80s" },
+            { "gh3", "Guitar Hero III: Legends of Rock" },
+            { "gh3dlc", "Guitar Hero III: Legends of Rock DLC" },
+            { "gha", "Guitar Hero: Aerosmith" },
+            { "ghwt", "Guitar Hero World Tour" },
+            { "ghwtdlc", "Guitar Hero World Tour DLC" },
+            { "ghm", "Guitar Hero: Metallica" },
+            { "ghmdlc", "Guitar Hero: Metallica DLC" },
+            { "ghsh", "Guitar Hero Smash Hits" },
+            { "ghv", "Guitar Hero: Van Halen" },
+            { "gh5", "Guitar Hero 5" },
+            { "gh5dlc", "Guitar Hero 5 DLC" },
+            { "bh", "Band Hero" },
+            { "ghwor", "Guitar Hero: Warriors of Rock" },
+            { "ghwordlc", "Guitar Hero: Warriors of Rock DLC" },
+            { "ghl", "Guitar Hero Live" },
+            { "rb1", "Rock Band" },
+            { "rb1dlc", "Rock Band DLC" },
+            { "rb2", "Rock Band 2" },
+            { "rb2dlc", "Rock Band 2 DLC" },
+            { "rb3", "Rock Band 3" },
+            { "rb3dlc", "Rock Band 3 DLC" },
+            { "rb4", "Rock Band 4" },
+            { "rb4dlc", "Rock Band 4 DLC" },
+            // { "", "The Beatles: Rock Band" },
+            // { "", "Green Day: Rock Band" },
+            { "lrb", "Lego Rock Band" },
+            { "rbb", "Rock Band Blitz" },
+            { "rbn", "Rock Band Network" },
+            { "ccc", "Customs Creators Collective" }
+        };
         private StatsRow row;
         public StatsRowBuilder() {
             Reset();
@@ -50,6 +88,28 @@ namespace StatsStoreHelper.Utils
                     serialFormatDate += ((date.Hour * 60 + date.Minute) * 60 + date.Second)  / (24 * 60 * 60);
 
                     cell.UserEnteredValue.NumberValue = serialFormatDate;
+                    break;
+                }
+                case "%source%":
+                {
+                    var source = value.ToString();
+                    if(IconSources.ContainsKey(source))
+                        source = IconSources[source];
+                    else
+                        source = "Unknown Source " + source;
+
+                    // TODO: check chorus db
+                    // TODO: check if is from Custom Songs Central
+
+                    cell.UserEnteredValue.StringValue = source;
+                    break;
+                }
+                case "%charter%":
+                {
+                    var charter = value.ToString();
+                    charter = Regex.Replace(charter, @"<(.*?)(.*?)?>(.*?)</\1>", @"$3");
+                    charter = Regex.Replace(charter, " +", " ");
+                    cell.UserEnteredValue.StringValue = charter;
                     break;
                 }
                 case "%score%":
