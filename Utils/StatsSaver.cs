@@ -1,4 +1,5 @@
 
+using Newtonsoft.Json;
 using StatsStoreHelper.Apis.GoogleApi;
 using StatsStoreHelper.MyWrappers;
 using System;
@@ -20,7 +21,7 @@ namespace StatsStoreHelper.Utils
         private StatsSaver()
         {
             statsSaved = false;
-            stashPath = Path.Combine(BepInEx.Paths.ConfigPath, PluginInfo.PLUGIN_NAME, "stash");
+            stashPath = Path.Combine(BepInEx.Paths.CachePath, PluginInfo.PLUGIN_NAME);
         }
 
         internal static StatsSaver GetInstance()
@@ -75,8 +76,15 @@ namespace StatsStoreHelper.Utils
             }
             catch(Exception e)
             {
-                System.Console.WriteLine(e.Message);
-                System.Console.WriteLine(e.StackTrace);
+                StatsStoreHelper.Logger.LogError("Can't save stats to spreadsheet. Storing it locally.");
+                if(e.GetType().Name == "HttpRequestException")
+                    StatsStoreHelper.Logger.LogError("  Can't send request.");
+                else
+                {
+                    StatsStoreHelper.Logger.LogError(e.GetType().Name);
+                    StatsStoreHelper.Logger.LogError(e.Message);
+                    StatsStoreHelper.Logger.LogError(e.StackTrace);
+                }
 
                 Stash(stats);
             }
@@ -103,10 +111,11 @@ namespace StatsStoreHelper.Utils
             await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, playerName);
 
             FindRowResult findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", songHash } });
+            
             if(findRowResult.RowData == null)
             {
                 System.Console.WriteLine("New Song! – Adding");
-                await currentStats.UploadScreenshot(ScreenshotPath);
+                await currentStats.UploadScreenshot();
                 spreadsheet.AppendRow(currentStats.RowData);
             }
             else
@@ -117,7 +126,7 @@ namespace StatsStoreHelper.Utils
                 {
                     System.Console.WriteLine("Better stats! – Updating");
                     storedStats.DeleteScreenshot();
-                    await currentStats.UploadScreenshot(ScreenshotPath);
+                    await currentStats.UploadScreenshot();
                     spreadsheet.UpdateRow(findRowResult.Index, currentStats.RowData);
                 }
                 else
@@ -127,8 +136,16 @@ namespace StatsStoreHelper.Utils
 
         private void Stash(Dictionary<string, object> stats)
         {
-            // JsonConvert.SerializeObject(stats);
-            throw new NotImplementedException();
+            string stashFilePath = Path.Combine(stashPath, "stash.json");
+
+            if(!File.Exists(stashFilePath))
+                File.WriteAllText(stashFilePath, "[]");
+
+            string stashContent = File.ReadAllText(stashFilePath);
+            List<Dictionary<string, object>> stash = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(stashContent);
+            stash.Add(stats);
+            stashContent = JsonConvert.SerializeObject(stash);
+            File.WriteAllText(stashFilePath, stashContent);
         }
 
         public void Reset()

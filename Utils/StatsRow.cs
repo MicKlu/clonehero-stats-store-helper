@@ -47,47 +47,69 @@ namespace StatsStoreHelper.Utils
             }
         }
 
-        public async Task UploadScreenshot(string screenshotPath)
+        public async Task UploadScreenshot()
         {
-            int screenshotIndex = UserConfig.UserStatsTags.IndexOf("%screenshot%");
-            int screenshotDeleteHashIndex = UserConfig.UserStatsTags.IndexOf("%screenshotdelete%");
+            try
+            {
+                int screenshotIndex = UserConfig.UserStatsTags.IndexOf("%screenshot%");
+                int screenshotDeleteHashIndex = UserConfig.UserStatsTags.IndexOf("%screenshotdelete%");
 
-            if(screenshotIndex == -1 || screenshotDeleteHashIndex == -1)
-                return;
+                if(screenshotIndex == -1 || screenshotDeleteHashIndex == -1)
+                    return;
 
-            if(screenshotIndex >= this.RowData.Values.Count)
-                return;
-                
-            if(screenshotDeleteHashIndex >= this.RowData.Values.Count)
-                return;
+                if(screenshotIndex >= this.RowData.Values.Count)
+                    return;
+                    
+                if(screenshotDeleteHashIndex >= this.RowData.Values.Count)
+                    return;
 
-            byte[] screenshot = File.ReadAllBytes(screenshotPath);
+                byte[] screenshot = File.ReadAllBytes((string) StatsDict["%screenshot%"]);
 
-            ImgurApi imgurApi = ImgurApi.GetInstance();
-            Dictionary<string, string> uploadResult = await imgurApi.UploadImage(screenshot);
+                ImgurApi imgurApi = ImgurApi.GetInstance();
+                Dictionary<string, string> uploadResult = await imgurApi.UploadImage(screenshot);
 
-            this.RowData.Values[screenshotIndex] = StatsRowBuilder.GetFormatedCell("%screenshot%", uploadResult["link"]);
-            this.RowData.Values[screenshotDeleteHashIndex] = StatsRowBuilder.GetFormatedCell("%screenshotdelete%", uploadResult["deletehash"]);
+                this.RowData.Values[screenshotIndex] = StatsRowBuilder.GetFormatedCell("%screenshot%", uploadResult["link"]);
+                this.RowData.Values[screenshotDeleteHashIndex] = StatsRowBuilder.GetFormatedCell("%screenshotdelete%", uploadResult["deletehash"]);
 
-            StatsDict["%screenshot%"] = uploadResult["link"];
-            StatsDict["%screenshotdelete%"] = uploadResult["deletehash"];
+                StatsDict["%screenshot%"] = uploadResult["link"];
+                StatsDict["%screenshotdelete%"] = uploadResult["deletehash"];
+            }
+            catch(Exception e)
+            {
+                StatsStoreHelper.Logger.LogError("Can't upload screenshot.");
+                System.Console.WriteLine(e.GetType().Name);
+                System.Console.WriteLine(e.Message);
+                System.Console.WriteLine(e.StackTrace);
+                throw e;
+            }
         }
 
         internal async void DeleteScreenshot()
         {
-            if(!UserConfig.UserStatsTags.Contains("%screenshot%"))
-                return;
+            try
+            {
+                if(!UserConfig.UserStatsTags.Contains("%screenshot%"))
+                    return;
 
-            if(!UserConfig.UserStatsTags.Contains("%screenshotdelete%"))
-                return;
-            
-            string deleteHash = (string) StatsDict["%screenshotdelete%"];
+                if(!UserConfig.UserStatsTags.Contains("%screenshotdelete%"))
+                    return;
+                
+                string deleteHash = (string) StatsDict["%screenshotdelete%"];
 
-            if(deleteHash.Length == 0)
-                return;
+                if(deleteHash.Length == 0)
+                    return;
 
-            ImgurApi imgurApi = ImgurApi.GetInstance();
-            await imgurApi.DeleteImage(deleteHash);
+                ImgurApi imgurApi = ImgurApi.GetInstance();
+                await imgurApi.DeleteImage(deleteHash);
+            }
+            catch(Exception e)
+            {
+                StatsStoreHelper.Logger.LogError("Can't delete screenshot.");
+                System.Console.WriteLine(e.GetType().Name);
+                System.Console.WriteLine(e.Message);
+                System.Console.WriteLine(e.StackTrace);
+                throw e;
+            }
         }
 
         public int CompareTo(StatsRow otherStats)
