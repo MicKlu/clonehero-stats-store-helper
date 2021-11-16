@@ -31,7 +31,7 @@ namespace StatsStoreHelper
 
         // TODO: Load it from config file
         private static string statsRowFormat = 
-            "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %screenshot% %screenshotdelete% %hash%";
+            "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %null% %null% %hash%";
         private static string statsPriority = 
             "%score% %fc% %accuracy% %stars%";
 
