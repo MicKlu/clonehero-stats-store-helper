@@ -49,7 +49,7 @@ namespace StatsStoreHelper.Utils
             Reset();
         }
 
-        private void Reset()
+        public void Reset()
         {
             row = new StatsRow();
         }

@@ -49,30 +49,37 @@ namespace StatsStoreHelper.Utils
 
         public async Task UploadScreenshot()
         {
+            int screenshotIndex = UserConfig.UserStatsTags.IndexOf("%screenshot%");
+            int screenshotDeleteHashIndex = UserConfig.UserStatsTags.IndexOf("%screenshotdelete%");
+
+            if(screenshotIndex == -1 || screenshotDeleteHashIndex == -1)
+                return;
+
+            if(screenshotIndex >= this.RowData.Values.Count)
+                return;
+                
+            if(screenshotDeleteHashIndex >= this.RowData.Values.Count)
+                return;
+
             try
             {
-                int screenshotIndex = UserConfig.UserStatsTags.IndexOf("%screenshot%");
-                int screenshotDeleteHashIndex = UserConfig.UserStatsTags.IndexOf("%screenshotdelete%");
-
-                if(screenshotIndex == -1 || screenshotDeleteHashIndex == -1)
-                    return;
-
-                if(screenshotIndex >= this.RowData.Values.Count)
-                    return;
-                    
-                if(screenshotDeleteHashIndex >= this.RowData.Values.Count)
-                    return;
-
                 byte[] screenshot = File.ReadAllBytes((string) StatsDict["%screenshot%"]);
 
                 ImgurApi imgurApi = ImgurApi.GetInstance();
                 Dictionary<string, string> uploadResult = await imgurApi.UploadImage(screenshot);
 
-                this.RowData.Values[screenshotIndex] = StatsRowBuilder.GetFormatedCell("%screenshot%", uploadResult["link"]);
-                this.RowData.Values[screenshotDeleteHashIndex] = StatsRowBuilder.GetFormatedCell("%screenshotdelete%", uploadResult["deletehash"]);
-
                 StatsDict["%screenshot%"] = uploadResult["link"];
                 StatsDict["%screenshotdelete%"] = uploadResult["deletehash"];
+
+                this.RowData.Values[screenshotIndex] = StatsRowBuilder.GetFormatedCell("%screenshot%", StatsDict["%screenshot%"]);
+                this.RowData.Values[screenshotDeleteHashIndex] = StatsRowBuilder.GetFormatedCell("%screenshotdelete%", StatsDict["%screenshotdelete%"]);
+            }
+            catch(FileNotFoundException)
+            {
+                StatsStoreHelper.Logger.LogError("Can't upload screenshot.");
+                StatsStoreHelper.Logger.LogError("  File not found.");
+                StatsDict["%screenshot%"] = "screenshot missing";
+                this.RowData.Values[screenshotIndex] = StatsRowBuilder.GetFormatedCell("%null%", StatsDict["%screenshot%"]);
             }
             catch(Exception e)
             {

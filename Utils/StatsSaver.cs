@@ -14,17 +14,16 @@ namespace StatsStoreHelper.Utils
         private static StatsSaver instance;
         private static readonly object instanceLock = new object();
         private bool statsSaved;
-        private string stashPath;
+        private string playerName;
 
         public string ScreenshotPath { get; set; }
 
         private StatsSaver()
         {
-            statsSaved = false;
-            stashPath = Path.Combine(BepInEx.Paths.CachePath, PluginInfo.PLUGIN_NAME);
+            this.statsSaved = false;
         }
 
-        internal static StatsSaver GetInstance()
+        public static StatsSaver GetInstance()
         {
             if(instance == null)
                 lock(instanceLock)
@@ -38,14 +37,19 @@ namespace StatsStoreHelper.Utils
             if(this.statsSaved)
                 return;
 
+            this.playerName = MyGlobalVariables.GetInstance().CHPlayers[0].PlayerProfile.playerName;
+
+            var stash = new Stash(this.playerName);
+            List<Dictionary<string, object>> queue = stash.Get();
+
             MySongEntry currentSongEntry = MyGlobalVariables.GetInstance().CurrentSongEntry;
             MyPlayerSongStats playerSongStats = MySongStats.PlayerSongStats[0];
 
             string hash = currentSongEntry.GetSHA256Hash();
-
-            BackUpScreenshot();
             
-            StatsRowBuilder statsRowBuilder = new StatsRowBuilder();
+            if(UserConfig.UserStatsTags.Contains("%screenshot%"))
+                BackUpScreenshot();
+
             Dictionary<string, object> stats = new Dictionary<string, object>
             {
                 { "%date%", DateTime.Now },
@@ -63,42 +67,54 @@ namespace StatsStoreHelper.Utils
                 { "%hash%", hash },
                 { "%null%", "" }
             };
+            queue.Add(stats);
+            
+            StatsRowBuilder statsRowBuilder = new StatsRowBuilder();
+            foreach(var songStats in queue)
+            {
+                statsRowBuilder.Reset();
+                
+                foreach(string tag in UserConfig.UserStatsTags)
+                    statsRowBuilder.AddStat(tag, songStats[tag]);
+                
+                StatsRow currentStats = statsRowBuilder.Build();
 
-            foreach(string tag in UserConfig.UserStatsTags)
-                statsRowBuilder.AddStat(tag, stats[tag]);
-            
-            StatsRow currentStats = statsRowBuilder.Build();
-            
-            try
-            {
-                await SaveToSpreadsheet(currentStats, hash);
-                File.Delete(ScreenshotPath);
-            }
-            catch(Exception e)
-            {
-                StatsStoreHelper.Logger.LogError("Can't save stats to spreadsheet. Storing it locally.");
-                if(e.GetType().Name == "HttpRequestException")
-                    StatsStoreHelper.Logger.LogError("  Can't send request.");
-                else
+                try
                 {
-                    StatsStoreHelper.Logger.LogError(e.GetType().Name);
-                    StatsStoreHelper.Logger.LogError(e.Message);
-                    StatsStoreHelper.Logger.LogError(e.StackTrace);
-                }
+                    await SaveToSpreadsheet(currentStats, hash);
 
-                Stash(stats);
+                    if(UserConfig.UserStatsTags.Contains("%screenshot%") && File.Exists((string) songStats["%screenshot%"]))
+                        File.Delete((string) songStats["%screenshot%"]);
+                    
+                    stash.Remove(songStats);
+                }
+                catch(Exception e)
+                {
+                    StatsStoreHelper.Logger.LogError("Can't save stats to spreadsheet. Storing it locally.");
+                    if(e.GetType().Name == "HttpRequestException")
+                        StatsStoreHelper.Logger.LogError("  Can't send request.");
+                    else
+                    {
+                        StatsStoreHelper.Logger.LogError(e.GetType().Name);
+                        StatsStoreHelper.Logger.LogError(e.Message);
+                        StatsStoreHelper.Logger.LogError(e.StackTrace);
+                    }
+
+                    stash.Add(stats);
+                }
             }
             
+            stash.Save();
             this.statsSaved = true;
         }
 
         private void BackUpScreenshot()
         {
             var oldScreenshotPath = ScreenshotPath;
-            ScreenshotPath = Path.Combine(stashPath, Path.GetFileName(oldScreenshotPath));
+            ScreenshotPath = Path.Combine(Stash.StashPath, Path.GetFileName(oldScreenshotPath));
 
-            if(!Directory.Exists(stashPath))
-                Directory.CreateDirectory(stashPath);
+            if(!Directory.Exists(Stash.StashPath))
+                Directory.CreateDirectory(Stash.StashPath);
 
             File.Copy(oldScreenshotPath, ScreenshotPath);
         }
@@ -107,7 +123,6 @@ namespace StatsStoreHelper.Utils
         {
             GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
             
-            string playerName = MyGlobalVariables.GetInstance().CHPlayers[0].PlayerProfile.playerName;
             await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, playerName);
 
             FindRowResult findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", songHash } });
@@ -132,20 +147,6 @@ namespace StatsStoreHelper.Utils
                 else
                     System.Console.WriteLine("No improvement :( – Leaving");
             }
-        }
-
-        private void Stash(Dictionary<string, object> stats)
-        {
-            string stashFilePath = Path.Combine(stashPath, "stash.json");
-
-            if(!File.Exists(stashFilePath))
-                File.WriteAllText(stashFilePath, "[]");
-
-            string stashContent = File.ReadAllText(stashFilePath);
-            List<Dictionary<string, object>> stash = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(stashContent);
-            stash.Add(stats);
-            stashContent = JsonConvert.SerializeObject(stash);
-            File.WriteAllText(stashFilePath, stashContent);
         }
 
         public void Reset()
