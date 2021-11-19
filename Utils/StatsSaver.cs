@@ -63,7 +63,7 @@ namespace StatsStoreHelper.Utils
                 { "%multiplier%", playerSongStats.AvgMultiplier },
                 { "%stars%", MySongStats.Stars },
                 { "%notes%", $"{playerSongStats.notesHit}/{playerSongStats.notesAll}" },
-                { "%accuracy%", (playerSongStats.notesHit / playerSongStats.notesAll) },
+                { "%accuracy%", (1.0 * playerSongStats.notesHit / playerSongStats.notesAll) },
                 { "%combo%", playerSongStats.combo },
                 { "%sp%", $"{playerSongStats.spPhrasesHit}/{playerSongStats.spPhrasesAll}" },
                 { "%fc%", (playerSongStats.combo == playerSongStats.notesAll) ? true : false },
