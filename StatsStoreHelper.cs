@@ -5,7 +5,7 @@ using StatsStoreHelper.Apis.GoogleApi;
 
 namespace StatsStoreHelper
 {
-    [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInPlugin("com.github.mgrinz.clonehero-stats-store-helper", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class StatsStoreHelper : BaseUnityPlugin
     {
         public static StatsStoreHelper Instance { get; private set; }
@@ -16,6 +16,8 @@ namespace StatsStoreHelper
         {
             Instance = this;
             Logger = base.Logger;
+
+            UserConfig.Load();
 
             await UserConfig.Authorize();
             Logger.LogInfo("Initializing GoogleApi");

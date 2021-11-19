@@ -18,6 +18,9 @@ namespace StatsStoreHelper.Utils
             this.stashFilePath = Path.Combine(StashPath, "stash.json");
             this.playerName = playerName;
 
+            if(!Directory.Exists(StashPath))
+                Directory.CreateDirectory(StashPath);
+
             if(!File.Exists(stashFilePath))
                 File.WriteAllText(stashFilePath, "{}");
 

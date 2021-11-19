@@ -83,6 +83,8 @@ namespace StatsStoreHelper.Utils
             }
             catch(Exception e)
             {
+                // TODO: Catch not image exceptions
+
                 StatsStoreHelper.Logger.LogError("Can't upload screenshot.");
                 System.Console.WriteLine(e.GetType().Name);
                 System.Console.WriteLine(e.Message);

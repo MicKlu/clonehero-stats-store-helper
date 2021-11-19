@@ -1,6 +1,7 @@
+using BepInEx;
+using BepInEx.Configuration;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Util.Store;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -10,6 +11,11 @@ namespace StatsStoreHelper
 {
     public static class UserConfig
     {
+        private static ConfigFile config = new ConfigFile(Path.Combine(Paths.ConfigPath, PluginInfo.PLUGIN_NAME, "config.cfg"), true);
+
+        private static ConfigEntry<string> clientId;
+        private static ConfigEntry<string> clientSecret;
+
         // TODO: Add more fields
         public static readonly Dictionary<string, string> StatsTags = new Dictionary<string, string>()
         {
@@ -29,24 +35,38 @@ namespace StatsStoreHelper
             { "%null%", "" }
         };
 
-        // TODO: Load it from config file
-        private static string statsRowFormat = 
-            "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %null% %null% %hash%";
-        private static string statsPriority = 
-            "%score% %fc% %accuracy% %stars%";
+        private static ConfigEntry<string> statsRowFormat;
+        private static ConfigEntry<string> statsPriority;
+
+        public static void Load()
+        {
+            clientId = config.Bind<string>("Authorization", "ClientId", "", "Client Id received from Google Cloud Console");
+            clientSecret = config.Bind<string>("Authorization", "ClientSecret", "", "Client Secret received from Google Cloud Console");
+            statsRowFormat = config.Bind<string>(
+                "Settings",
+                "RowFormat",
+                "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %screenshot% %screenshotdelete% %hash%",
+                "Order of columns in generated spreadsheet. Should not be changed after creating spreadsheet."
+            );
+            statsPriority = config.Bind<string>(
+                "Settings",
+                "StatsPriority",
+                "%score% %fc% %accuracy% %stars%",
+                "Which order should stats be compared in to decide which one is better."
+            );
+        }
 
         public static async Task Authorize()
         {
             ClientSecrets clientSecrets = new ClientSecrets
             {
-                ClientId = "1043533161342-rb1s1n4pcstiuc58tptkj3a6ju611guo.apps.googleusercontent.com",
-                ClientSecret = "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"
+                ClientId = clientId.Value,
+                ClientSecret = clientSecret.Value
             };
             List<string> scopes = new List<string>
             {
                 "https://www.googleapis.com/auth/photoslibrary.appendonly",
                 "https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata",
-                "https://www.googleapis.com/auth/photoslibrary.sharing",
                 "https://www.googleapis.com/auth/drive.file",
             };
             
@@ -61,7 +81,7 @@ namespace StatsStoreHelper
 
         public static List<object> GetSheetHeaders()
         {
-            string[] tags = statsRowFormat.Split(' ');
+            string[] tags = statsRowFormat.Value.Split(' ');
             var headers = new List<object>();
 
             foreach(string tag in tags)
@@ -76,13 +96,13 @@ namespace StatsStoreHelper
 
         public static List<string> UserStatsTags
         {
-            get => new List<string>(statsRowFormat.Split(' '));
+            get => new List<string>(statsRowFormat.Value.Split(' '));
         }
 
         public static UserCredential GoogleUserCredentials { get; private set; }
         public static List<string> UserStatsPriority
         {
-            get => new List<string>(statsPriority.Split(' '));
+            get => new List<string>(statsPriority.Value.Split(' '));
         }
     }
 }
