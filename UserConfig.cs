@@ -21,12 +21,17 @@ namespace StatsStoreHelper
         {
             { "%date%", "Date" },
             { "%artist%", "Artist" },
+            { "%album%", "Album" },
             { "%song%", "Song" },
+            { "%genre%", "Genre" },
             { "%source%", "Source" },
             { "%charter%", "Charter" },
             { "%score%", "Score" },
+            { "%multiplier%", "AVG Multiplier" },
             { "%stars%", "Stars" },
+            { "%notes%", "Notes" },
             { "%accuracy%", "Accuracy" },
+            { "%combo%", "Combo" },
             { "%sp%", "Star Powers" },
             { "%fc%", "FC" },
             { "%screenshot%", "Screenshot" },
@@ -45,13 +50,13 @@ namespace StatsStoreHelper
             statsRowFormat = config.Bind<string>(
                 "Settings",
                 "RowFormat",
-                "%date% %artist% %song% %source% %charter% %score% %stars% %accuracy% %sp% %fc% %screenshot% %screenshotdelete% %hash%",
+                "%date% %artist% %song% %source% %charter% %score% %stars% %notes% %accuracy% %sp% %fc% %screenshot% %screenshotdelete% %hash%",
                 "Order of columns in generated spreadsheet. Should not be changed after creating spreadsheet."
             );
             statsPriority = config.Bind<string>(
                 "Settings",
                 "StatsPriority",
-                "%score% %fc% %accuracy% %stars%",
+                "%score% %fc% %accuracy% %notes% %stars%",
                 "Which order should stats be compared in to decide which one is better."
             );
         }

@@ -115,6 +115,8 @@ namespace StatsStoreHelper.Utils
                 case "%score%":
                 case "%stars%":
                 case "%accuracy%":
+                case "%combo%":
+                case "%multiplier%":
                 {
                     cell.UserEnteredValue.NumberValue = Convert.ToDouble(value);
                     break;
