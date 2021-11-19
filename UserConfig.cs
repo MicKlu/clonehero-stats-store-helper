@@ -56,7 +56,7 @@ namespace StatsStoreHelper
             statsPriority = config.Bind<string>(
                 "Settings",
                 "StatsPriority",
-                "%score% %fc% %accuracy% %notes% %stars%",
+                "%score% %fc% %accuracy% %stars%",
                 "Which order should stats be compared in to decide which one is better."
             );
         }

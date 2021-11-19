@@ -123,14 +123,24 @@ namespace StatsStoreHelper.Utils
 
         public int CompareTo(StatsRow otherStats)
         {
-            foreach(string statTag in UserConfig.UserStatsPriority)
+            try
             {
-                double thisStat = Convert.ToDouble(this.StatsDict[statTag]);
-                double otherStat = Convert.ToDouble(otherStats.StatsDict[statTag]);
-                if(thisStat < otherStat)
-                    return 1;
-                else if(thisStat > otherStat)
-                    return -1;
+                foreach(string statTag in UserConfig.UserStatsPriority)
+                {
+                    double thisStat = Convert.ToDouble(this.StatsDict[statTag]);
+                    double otherStat = Convert.ToDouble(otherStats.StatsDict[statTag]);
+                    if(thisStat < otherStat)
+                        return 1;
+                    else if(thisStat > otherStat)
+                        return -1;
+                }
+            }
+            catch(Exception e)
+            {
+                StatsStoreHelper.Logger.LogError("Can't compare stats. Row might be corrupted or wrongly formatted");
+                StatsStoreHelper.Logger.LogError($"  {StatsDict.ToString()}");
+                StatsStoreHelper.Logger.LogError(e.Message);
+                StatsStoreHelper.Logger.LogError(e.StackTrace);
             }
             return 0;
         }
