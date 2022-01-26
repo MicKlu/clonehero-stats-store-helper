@@ -38,7 +38,9 @@ namespace StatsStoreHelper.Utils
 
                 ExtendedValue extendedValue = this.RowData.Values[cellIndex].UserEnteredValue;
 
-                if(extendedValue.BoolValue != null)
+                if(extendedValue == null)
+                    StatsDict[statTag] = null;
+                else if(extendedValue.BoolValue != null)
                     StatsDict[statTag] = extendedValue.BoolValue;
                 else if(extendedValue.NumberValue != null)
                     StatsDict[statTag] = extendedValue.NumberValue;
@@ -93,7 +95,7 @@ namespace StatsStoreHelper.Utils
             }
         }
 
-        internal async void DeleteScreenshot()
+        public async void DeleteScreenshot()
         {
             try
             {
