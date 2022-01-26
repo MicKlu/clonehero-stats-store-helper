@@ -40,6 +40,7 @@ namespace StatsStoreHelper
             { "%null%", "" }
         };
 
+        private static ConfigEntry<string> spreadsheetId;
         private static ConfigEntry<string> statsRowFormat;
         private static ConfigEntry<string> statsPriority;
 
@@ -47,6 +48,12 @@ namespace StatsStoreHelper
         {
             clientId = config.Bind<string>("Authorization", "ClientId", "", "Client Id received from Google Cloud Console");
             clientSecret = config.Bind<string>("Authorization", "ClientSecret", "", "Client Secret received from Google Cloud Console");
+            spreadsheetId = config.Bind<string>(
+                "Settings",
+                "SpreadSheetId",
+                "",
+                $"ID of the spreadsheet containing stored stats. If left blank, it will be created with name \"{PluginInfo.PLUGIN_NAME}\" and updated. The spreadsheed's ID is contained in its URL: https://docs.google.com/spreadsheets/d/<YOUR SPREADSHEET ID>/edit"
+            );
             statsRowFormat = config.Bind<string>(
                 "Settings",
                 "RowFormat",
@@ -94,6 +101,15 @@ namespace StatsStoreHelper
                     headers.Add(StatsTags[tag]);
 
             return headers;
+        }
+
+        public static string SpreadsheetId
+        {
+            get => spreadsheetId.Value;
+            set
+            {
+                spreadsheetId.Value = value;
+            }
         }
 
         // TODO: Load it from config file

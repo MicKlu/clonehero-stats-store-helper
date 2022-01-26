@@ -128,8 +128,8 @@ namespace StatsStoreHelper.Utils
         {
             GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
             
-            await spreadsheet.Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME, playerName);
-
+            await spreadsheet.Init(UserConfig.GoogleUserCredentials, playerName);
+            
             FindRowResult findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", songHash } });
             
             if(findRowResult.RowData == null)

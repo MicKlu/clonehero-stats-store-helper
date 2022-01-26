@@ -31,7 +31,7 @@ namespace StatsStoreHelper.Apis.GoogleApi
             return instance;
         }
     
-        public async Task Init(UserCredential credentials, string spreadsheetName, string sheetName)
+        public async Task Init(UserCredential credentials, string sheetName)
         {
             if(this.credentials != credentials)
             {
@@ -48,23 +48,21 @@ namespace StatsStoreHelper.Apis.GoogleApi
                 this.sheetId = 0;
             }
 
-            if(this.Name != spreadsheetName)
-            {
-                this.spreadsheetId = null;
-                this.sheetId = 0;
-            }
-
             if(this.spreadsheetId == null)
             {
-                this.Name = spreadsheetName;
                 this.SheetName = sheetName;
+                
+                if(UserConfig.SpreadsheetId.Length != 0 && await SpreadsheetExists(UserConfig.SpreadsheetId))
+                    this.spreadsheetId = UserConfig.SpreadsheetId;
+                // else
+                    // TODO: Show error if wrong
 
-                this.spreadsheetId = await GetSpreadsheetId();
                 if(this.spreadsheetId == null)
                 {
                     Spreadsheet spreadsheet = await CreateSpreadsheet();
                     this.spreadsheetId = spreadsheet.SpreadsheetId;
                     this.sheetId = (int) spreadsheet.Sheets[0].Properties.SheetId;
+                    UserConfig.SpreadsheetId = spreadsheet.SpreadsheetId;
                 }
             }
 
@@ -222,22 +220,34 @@ namespace StatsStoreHelper.Apis.GoogleApi
             }
         }
 
+        private async Task<bool> SpreadsheetExists(string spreadsheetId)
+        {
+            SpreadsheetsResource.GetRequest getRequest = sheetsService.Spreadsheets.Get(spreadsheetId);
+            try
+            {
+                Spreadsheet spreadsheet = await getRequest.ExecuteAsync();
+                return true;
+            }
+            catch(Google.GoogleApiException e)
+            {   
+                JObject error = JObject.Parse(e.Error.ErrorResponseContent);
+                if((string) error["error"]["status"] == "NOT_FOUND")
+                    return false;
+
+                throw e;
+            }
+        }
+
         private async Task<Spreadsheet> CreateSpreadsheet()
         {
             Spreadsheet spreadsheet = new Spreadsheet();
-            spreadsheet.Properties = new SpreadsheetProperties() { Title = Name };
+            spreadsheet.Properties = new SpreadsheetProperties() { Title = PluginInfo.PLUGIN_NAME };
             
             spreadsheet.Sheets = new List<Sheet>() { CreateSheetTemplate() };
             
             SpreadsheetsResource.CreateRequest createRequest = sheetsService.Spreadsheets.Create(spreadsheet);
             spreadsheet = await createRequest.ExecuteAsync();
             return spreadsheet;
-        }
-
-        private async Task<string> GetSpreadsheetId()
-        {
-            string result = await GoogleApi.GetInstance().GetFileIdFromGoogleDrive(Name);
-            return result;
         }
 
         private Sheet CreateSheetTemplate()

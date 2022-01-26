@@ -20,8 +20,6 @@ namespace StatsStoreHelper
             UserConfig.Load();
 
             await UserConfig.Authorize();
-            Logger.LogInfo("Initializing GoogleApi");
-            GoogleApi.GetInstance().Init(UserConfig.GoogleUserCredentials, PluginInfo.PLUGIN_NAME);
             
             var harmony = new Harmony("com.github.mgrinz.clonehero-stats-store-helper");
             harmony.PatchAll();
