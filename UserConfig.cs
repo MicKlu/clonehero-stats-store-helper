@@ -2,8 +2,10 @@ using BepInEx;
 using BepInEx.Configuration;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Util.Store;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -43,6 +45,7 @@ namespace StatsStoreHelper
         private static ConfigEntry<string> spreadsheetId;
         private static ConfigEntry<string> statsRowFormat;
         private static ConfigEntry<string> statsPriority;
+        private static ConfigEntry<string> aesKey;
 
         public static void Load()
         {
@@ -65,6 +68,12 @@ namespace StatsStoreHelper
                 "StatsPriority",
                 "%score% %fc% %accuracy% %stars%",
                 "Which order should stats be compared in to decide which one is better."
+            );
+            aesKey = config.Bind<string>(
+                "Security",
+                "SecurityKey",
+                "",
+                "A key used for securing your screenshot delete hashes. It prevents others from deleting your screenshots if you decide to share spreadsheet. Treat the key like a password and store it securely. If this field is left blank a new key will be generated."
             );
         }
 
@@ -124,6 +133,30 @@ namespace StatsStoreHelper
         public static List<string> UserStatsPriority
         {
             get => new List<string>(statsPriority.Value.Split(' '));
+        }
+
+        public static byte[] AesKey
+        {
+            get
+            {
+                string key = aesKey.Value;
+                byte[] rawKey;
+                if(key.Length > 0)
+                    rawKey = Convert.FromBase64String(key);
+                else
+                {
+                    using(Aes aes = Aes.Create())
+                    {
+                        rawKey = aes.Key;
+                        aesKey.Value = Convert.ToBase64String(rawKey);
+                    }
+                }
+                return rawKey;
+            }
+            set
+            {
+                aesKey.Value = Convert.ToBase64String(value);
+            }
         }
     }
 }

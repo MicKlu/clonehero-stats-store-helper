@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Google.Apis.Sheets.v4.Data;
 using StatsStoreHelper.Apis;
@@ -71,9 +72,10 @@ namespace StatsStoreHelper.Utils
                 Dictionary<string, string> uploadResult = await imgurApi.UploadImage(screenshot);
 
                 StatsDict["%screenshot%"] = uploadResult["link"];
-                StatsDict["%screenshotdelete%"] = uploadResult["deletehash"];
+                StatsDict["%screenshotdelete%"] = EncryptDeleteHash(uploadResult["deletehash"]);
 
                 this.RowData.Values[screenshotIndex] = StatsRowBuilder.GetFormatedCell("%screenshot%", StatsDict["%screenshot%"]);
+                this.RowData.Values[screenshotIndex].UserEnteredValue.StringValue = "Link";
                 this.RowData.Values[screenshotDeleteHashIndex] = StatsRowBuilder.GetFormatedCell("%screenshotdelete%", StatsDict["%screenshotdelete%"]);
             }
             catch(FileNotFoundException)
@@ -105,7 +107,7 @@ namespace StatsStoreHelper.Utils
                 if(!UserConfig.UserStatsTags.Contains("%screenshotdelete%"))
                     return;
                 
-                string deleteHash = (string) StatsDict["%screenshotdelete%"];
+                string deleteHash = DecryptDeleteHash((string) StatsDict["%screenshotdelete%"]);
 
                 if(deleteHash.Length == 0)
                     return;
@@ -145,6 +147,59 @@ namespace StatsStoreHelper.Utils
                 StatsStoreHelper.Logger.LogError(e.StackTrace);
             }
             return 0;
+        }
+
+        private string EncryptDeleteHash(string plainDeleteHash)
+        {
+            string cipherDeleteHash = "";
+            
+            using(Aes aes = Aes.Create())
+            {
+                aes.Key = UserConfig.AesKey;
+
+                using(MemoryStream memoryStream = new MemoryStream())
+                {
+                    memoryStream.Write(aes.IV, 0, aes.IV.Length);
+
+                    ICryptoTransform encryptor = aes.CreateEncryptor();
+                    using(CryptoStream cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+                    {
+                        using(StreamWriter streamWriter = new StreamWriter(cryptoStream))
+                            streamWriter.Write(plainDeleteHash);
+                    }
+
+                    cipherDeleteHash = Convert.ToBase64String(memoryStream.ToArray());
+                }
+            }
+
+            return cipherDeleteHash;
+        }
+
+        private string DecryptDeleteHash(string cipherDeleteHash)
+        {
+            string plainDeleteHash = "";
+            byte[] rawCipherDeleteHash = Convert.FromBase64String(cipherDeleteHash);
+
+            using(Aes aes = Aes.Create())
+            {
+                aes.Key = UserConfig.AesKey;
+
+                using(MemoryStream memoryStream = new MemoryStream(rawCipherDeleteHash))
+                {
+                    byte[] IV = new byte[aes.BlockSize / 8];
+                    memoryStream.Read(IV, 0, IV.Length);
+                    aes.IV = IV;
+                    
+                    ICryptoTransform decryptor = aes.CreateDecryptor();
+                    using(CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+                    {
+                        using(StreamReader streamReader = new StreamReader(cryptoStream))
+                            plainDeleteHash = streamReader.ReadToEnd();
+                    }
+                }
+            }
+
+            return plainDeleteHash;
         }
 
         public Dictionary<string, object> StatsDict { get; private set; }

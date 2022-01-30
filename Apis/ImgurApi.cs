@@ -18,7 +18,10 @@ namespace StatsStoreHelper.Apis
             if(httpClient == null)
                 httpClient = new HttpClient();
 
-            this.clientId = "546c25a59c58ad7";  // Hardcoded now; might need retrieving
+            // Hardcoded now; might need retrieving
+            // It's Imgur's website clientId. Seems not changing for months
+            // If uploading screenshots suddenly stops, it's first thing to check
+            this.clientId = "546c25a59c58ad7";
         }
 
         public static ImgurApi GetInstance()
@@ -40,8 +43,6 @@ namespace StatsStoreHelper.Apis
             string result = await response.Content.ReadAsStringAsync();
 
             // TODO: Handle connection errors
-
-            System.Console.WriteLine(result);   // Leave for debbuging potential cliend_id change
 
             JObject resultObject = JObject.Parse(result);
             string link = (string) resultObject["data"]["link"];
