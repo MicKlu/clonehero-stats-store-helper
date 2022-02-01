@@ -45,7 +45,9 @@ namespace StatsStoreHelper.Utils
             MySongEntry currentSongEntry = MyGlobalVariables.GetInstance().CurrentSongEntry;
             MyPlayerSongStats playerSongStats = MySongStats.PlayerSongStats[0];
 
-            string hash = currentSongEntry.GetSHA256Hash();
+            List<string> hashes = new List<string>();
+            hashes.Add(currentSongEntry.GetMD5Hash());
+            hashes.Add(currentSongEntry.GetSHA256Hash());
             
             if(UserConfig.UserStatsTags.Contains("%screenshot%"))
                 BackUpScreenshot();
@@ -69,7 +71,7 @@ namespace StatsStoreHelper.Utils
                 { "%fc%", (playerSongStats.combo == playerSongStats.notesAll) ? true : false },
                 { "%screenshot%", ScreenshotPath },
                 { "%screenshotdelete%", "" },
-                { "%hash%", hash },
+                { "%hash%", hashes[0] },
                 { "%null%", "" }
             };
             queue.Add(stats);
@@ -86,7 +88,7 @@ namespace StatsStoreHelper.Utils
 
                 try
                 {
-                    await SaveToSpreadsheet(currentStats, hash);
+                    await SaveToSpreadsheet(currentStats, hashes);
 
                     if(UserConfig.UserStatsTags.Contains("%screenshot%") && File.Exists((string) songStats["%screenshot%"]))
                         File.Delete((string) songStats["%screenshot%"]);
@@ -124,13 +126,22 @@ namespace StatsStoreHelper.Utils
             File.Copy(oldScreenshotPath, ScreenshotPath);
         }
 
-        private async Task SaveToSpreadsheet(StatsRow currentStats, string songHash)
+        private async Task SaveToSpreadsheet(StatsRow currentStats, List<string> songHashes)
         {
             GoogleSpreadsheet spreadsheet = GoogleSpreadsheet.GetInstance();
             
             await spreadsheet.Init(UserConfig.GoogleUserCredentials, playerName);
             
-            FindRowResult findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", songHash } });
+            FindRowResult findRowResult = null;
+            foreach(string hash in songHashes)
+            {
+                findRowResult = await spreadsheet.FindRow(new Dictionary<string, object> () { { "%hash%", hash } });
+                if(findRowResult.RowData != null)
+                    break;
+            }
+
+            if(findRowResult == null)
+                throw new Exception("Querying spreadsheet didn't return any valid results.");
             
             if(findRowResult.RowData == null)
             {
