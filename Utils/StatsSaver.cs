@@ -146,6 +146,7 @@ namespace StatsStoreHelper.Utils
             if(findRowResult.RowData == null)
             {
                 System.Console.WriteLine("New Song! – Adding");
+                currentStats.CheckChorus();
                 await currentStats.UploadScreenshot();
                 spreadsheet.AppendRow(currentStats.RowData);
             }
@@ -156,6 +157,7 @@ namespace StatsStoreHelper.Utils
                 if(storedStats.CompareTo(currentStats) > 0)
                 {
                     System.Console.WriteLine("Better stats! – Updating");
+                    currentStats.CheckChorus();
                     storedStats.DeleteScreenshot();
                     await currentStats.UploadScreenshot();
                     spreadsheet.UpdateRow(findRowResult.Index, currentStats.RowData);

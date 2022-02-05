@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Google.Apis.Sheets.v4.Data;
 using StatsStoreHelper.Apis;
+using ChorusApi;
 
 namespace StatsStoreHelper.Utils
 {
@@ -48,6 +49,35 @@ namespace StatsStoreHelper.Utils
                 else if(extendedValue.StringValue != null)
                     StatsDict[statTag] = extendedValue.StringValue;
             }
+        }
+
+        public async void CheckChorus()
+        {
+            int sourceIndex = UserConfig.UserStatsTags.IndexOf("%source%");
+
+            if(sourceIndex == -1)
+                return;
+
+            if(sourceIndex >= this.RowData.Values.Count)
+                return;
+
+            if(!((string)StatsDict["%source%"]).StartsWith("Unknown Source"))
+                return;
+
+            ChorusQuery query = new ChorusQuery()
+            {
+                MD5 = (string)StatsDict["%hash%"]
+            };
+            ChorusResults results = await ChorusApi.ChorusApi.GetInstance().Search(query);
+
+            if(results.Songs.Count == 0)
+                return;
+            
+            if(results.Songs[0].Sources.Count == 0)
+                return;
+
+            StatsDict["%source%"] = $"chorus: {results.Songs[0].Sources[0].Name}";
+            this.RowData.Values[sourceIndex] = StatsRowBuilder.GetFormatedCell("%null%", StatsDict["%source%"]);
         }
 
         public async Task UploadScreenshot()

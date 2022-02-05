@@ -98,9 +98,6 @@ namespace StatsStoreHelper.Utils
                     else
                         source = "Unknown Source " + source;
 
-                    // TODO: check chorus db
-                    // TODO: check if is from Custom Songs Central
-
                     cell.UserEnteredValue.StringValue = source;
                     break;
                 }
