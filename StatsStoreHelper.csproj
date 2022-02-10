@@ -26,17 +26,11 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>lib\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="ChorusApi">
-      <HintPath>lib\ChorusApi.dll</HintPath>
+    <Reference Include="ChorusLib">
+      <HintPath>lib\ChorusLib.dll</HintPath>
     </Reference>
     <Reference Include="Harmony">
       <HintPath>lib\0Harmony.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http">
-      <HintPath>lib\System.Net.Http.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime.Serialization.dll">
-      <HintPath>lib\System.Runtime.Serialization.dll.dll</HintPath>
     </Reference>
   </ItemGroup> 
 </Project>

@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Google.Apis.Sheets.v4.Data;
 using StatsStoreHelper.Apis;
-using ChorusApi;
+using ChorusLib;
 
 namespace StatsStoreHelper.Utils
 {
@@ -68,7 +68,7 @@ namespace StatsStoreHelper.Utils
             {
                 MD5 = (string)StatsDict["%hash%"]
             };
-            ChorusResults results = await ChorusApi.ChorusApi.GetInstance().Search(query);
+            ChorusResults results = await ChorusApi.GetInstance().Search(query);
 
             if(results.Songs.Count == 0)
                 return;

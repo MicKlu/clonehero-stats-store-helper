@@ -86,8 +86,6 @@ namespace StatsStoreHelper
             };
             List<string> scopes = new List<string>
             {
-                "https://www.googleapis.com/auth/photoslibrary.appendonly",
-                "https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata",
                 "https://www.googleapis.com/auth/drive.file",
             };
             
