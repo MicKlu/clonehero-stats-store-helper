@@ -62,35 +62,28 @@ namespace StatsStoreHelper.MyWrappers
             return (string) propertyField.GetValue(property);
         }
 
-        public string GetSHA256Hash()
+        private string GetHash(HashAlgorithm hashAlgorithm)
         {
-            using(SHA256Managed sha256 = new SHA256Managed())
+            using(FileStream file = File.OpenRead(this.ChartPath))
             {
-                using(FileStream file = File.OpenRead(this.ChartPath))
-                {
-                    string hash = "";
-                    byte[] hashBytes = sha256.ComputeHash(file);
-                    foreach(byte b in hashBytes)
-                        hash += b.ToString("x2");
-                    return hash;
-                }
+                string hash = "";
+                byte[] hashBytes = hashAlgorithm.ComputeHash(file);
+                foreach(byte b in hashBytes)
+                    hash += b.ToString("x2");
+                return hash;
             }
         }
 
-        // Note: Will come in handy for chorus db search
+        public string GetSHA256Hash()
+        {
+            using(SHA256Managed sha256 = new SHA256Managed())
+                return GetHash(sha256);
+        }
+
         public string GetMD5Hash()
         {
             using(MD5 md5 = MD5.Create())
-            {
-                using(FileStream file = File.OpenRead(this.ChartPath))
-                {
-                    string hash = "";
-                    byte[] hashBytes = md5.ComputeHash(file);
-                    foreach(byte b in hashBytes)
-                        hash += b.ToString("x2");
-                    return hash;
-                }
-            }
+                return GetHash(md5);
         }
     }
 }

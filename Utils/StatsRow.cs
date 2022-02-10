@@ -148,9 +148,9 @@ namespace StatsStoreHelper.Utils
             catch(Exception e)
             {
                 StatsStoreHelper.Logger.LogError("Can't delete screenshot.");
-                System.Console.WriteLine(e.GetType().Name);
-                System.Console.WriteLine(e.Message);
-                System.Console.WriteLine(e.StackTrace);
+                StatsStoreHelper.Logger.LogError(e.GetType().Name);
+                StatsStoreHelper.Logger.LogError(e.Message);
+                StatsStoreHelper.Logger.LogError(e.StackTrace);
                 throw e;
             }
         }
