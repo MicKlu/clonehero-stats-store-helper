@@ -150,6 +150,7 @@ namespace StatsStoreHelper.Utils
                     cellFormat.NumberFormat = new NumberFormat() { Type = "PERCENT", Pattern = "0.00%" };
                     break;
                 }
+                case "%link%":
                 case "%screenshot%":
                 {
                     TextFormat textFormat = new TextFormat();

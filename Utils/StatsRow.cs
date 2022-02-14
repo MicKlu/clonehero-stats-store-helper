@@ -61,9 +61,6 @@ namespace StatsStoreHelper.Utils
             if(sourceIndex >= this.RowData.Values.Count)
                 return;
 
-            if(!((string)StatsDict["%source%"]).StartsWith("Unknown Source"))
-                return;
-
             ChorusQuery query = new ChorusQuery()
             {
                 MD5 = (string)StatsDict["%hash%"]
@@ -76,8 +73,13 @@ namespace StatsStoreHelper.Utils
             if(results.Songs[0].Sources.Count == 0)
                 return;
 
-            StatsDict["%source%"] = $"chorus: {results.Songs[0].Sources[0].Name}";
-            this.RowData.Values[sourceIndex] = StatsRowBuilder.GetFormatedCell("%null%", StatsDict["%source%"]);
+            CellData cell = StatsRowBuilder.GetFormatedCell("%link%", results.Songs[0].Link);
+            
+            if(((string)StatsDict["%source%"]).StartsWith("Unknown Source"))
+                StatsDict["%source%"] = $"chorus: {results.Songs[0].Sources[0].Name}";
+
+            cell.UserEnteredValue.StringValue = (string)StatsDict["%source%"];
+            this.RowData.Values[sourceIndex] = cell;
         }
 
         public async Task UploadScreenshot()
